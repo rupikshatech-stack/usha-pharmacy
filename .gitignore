@@ -1,0 +1,17 @@
+node_modules
+.env
+.data
+.mongo-bin
+.npm-cache
+.tmp
+dist
+.test-data
+# uploaded invoices and cloud credentials: never commit these
+server/uploads
+uploads
+*service-account*.json
+*credentials*.json
+gcp-key*.json
+secrets/
+server/secrets/
+!server/secrets/README.md

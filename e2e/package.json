@@ -1,0 +1,14 @@
+{
+  "name": "usha-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser tests for the Usha Pharmacy UI. Runs against a throwaway database and its own API/web servers.",
+  "scripts": {
+    "e2e": "node all.mjs",
+    "test": "node all.mjs"
+  },
+  "devDependencies": {
+    "axe-core": "4.10.2",
+    "playwright-core": "1.49.1"
+  }
+}

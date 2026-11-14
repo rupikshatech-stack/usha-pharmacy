@@ -1,0 +1,227 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- Design tokens (single source of truth) ---------- */
+:root {
+  --app: #f7f8f4;
+  --card: #ffffff;
+  --subtle: #f1f4ee;
+  --ink: #25332d;
+  --muted: #5f6e66; /* AA contrast (5.4:1 on white) */
+  --line: #e7ebe5;
+  --primary: #174b3a;
+  --primary-hover: #24664f;
+  --on-primary: #ffffff;
+  --side: #174b3a; /* left sidebar / brand panel — same in light and dark */
+  --sage: #dceBe2;
+  --sage-ink: #174b3a;
+  --amber: #e5a34b;
+  --success: #146c4e; /* AA contrast as text on white and on its soft tint */
+  --warning: #8a5200;
+  --info: #1d5aa0; /* blue: in transit */
+  --purple: #6b3fb0; /* summary cards */
+  --accent: #174b3a; /* the call-to-action: Usha forest green */
+  --accent-hover: #24664f; /* secondary green */
+  --on-accent: #ffffff;
+  --orange: #9a4608; /* partially received */
+  --danger: #b3352f;
+  --on-danger: #ffffff; /* text on a solid danger background */
+  --success-soft: color-mix(in srgb, var(--success) 13%, transparent);
+  --warning-soft: color-mix(in srgb, var(--warning) 16%, transparent);
+  --info-soft: color-mix(in srgb, var(--info) 13%, transparent);
+  --purple-soft: color-mix(in srgb, var(--purple) 13%, transparent);
+  --orange-soft: color-mix(in srgb, var(--orange) 14%, transparent);
+  --danger-soft: color-mix(in srgb, var(--danger) 12%, transparent);
+  --overlay: rgba(23, 40, 33, 0.45);
+  --shadow: 0 1px 2px rgba(23, 40, 33, 0.04), 0 4px 16px rgba(23, 40, 33, 0.04);
+  --shadow-pop: 0 12px 40px rgba(23, 40, 33, 0.16);
+  color-scheme: light;
+}
+
+.dark {
+  --app: #0d1512;
+  --card: #15201b;
+  --subtle: #1a2822;
+  --ink: #e5ede8;
+  --muted: #8da096;
+  --line: #243530;
+  --primary: #46b08a;
+  --primary-hover: #5cc29c;
+  --on-primary: #06120d;
+  --sage: #1d3a2f;
+  --sage-ink: #9adbc0;
+  --amber: #e9b265;
+  --success: #3fbf8d;
+  --warning: #eeb25a;
+  --info: #7fb4ee;
+  --purple: #b79cf0;
+  --accent: #46b08a; /* the call-to-action, lifted for a dark background */
+  --accent-hover: #5cc29c;
+  --on-accent: #06120d;
+  --orange: #f2a26b;
+  --danger: #ea736f;
+  --on-danger: #1a0908;
+  --overlay: rgba(0, 0, 0, 0.6);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
+@theme inline {
+  /* A breakpoint above 2xl, for the few places that only earn an extra column on a really wide screen.
+     Two traps here, both of which make the rule silently do nothing rather than fail:
+       - an arbitrary `min-[1800px]:` variant is emitted BEFORE the named breakpoints, so `sm:` overrides it;
+       - and a breakpoint declared in px sorts ahead of the built-in ones, which are in rem — same outcome.
+     So it is named AND in rem. 112.5rem = 1800px. */
+  --breakpoint-3xl: 112.5rem;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-app: var(--app);
+  --color-card: var(--card);
+  --color-subtle: var(--subtle);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-side: var(--side);
+  --color-sage: var(--sage);
+  --color-sage-ink: var(--sage-ink);
+  --color-amber: var(--amber);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-purple: var(--purple);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-orange: var(--orange);
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+  --color-success-soft: var(--success-soft);
+  --color-warning-soft: var(--warning-soft);
+  --color-info-soft: var(--info-soft);
+  --color-purple-soft: var(--purple-soft);
+  --color-orange-soft: var(--orange-soft);
+  --color-danger-soft: var(--danger-soft);
+  --shadow-card: var(--shadow);
+  --shadow-pop: var(--shadow-pop);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--app);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Smooth theme switching (only while toggling, so it never slows normal use) */
+html.theme-anim,
+html.theme-anim * {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease !important;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--sage);
+}
+
+/* Thin, themed scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted) 55%, transparent) transparent;
+}
+/* Chrome and Edge before version 121 ignore the two properties above and draw the operating system's scrollbar —
+   a thick grey bar with stepper arrows that looks nothing like the rest of the interface, and is especially obvious
+   inside a dialog. These rules give those browsers the same slim, themed bar: no arrows, a rounded thumb that sits
+   on a transparent track, and a little more presence while the pointer is over it. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--muted) 55%, transparent);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--muted) 80%, transparent);
+}
+/* the stepper arrows at the ends of the bar */
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* ---------- Motion ---------- */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+.anim-fade { animation: fade-in 0.15s ease-out both; }
+.anim-pop { animation: pop-in 0.18s ease-out both; }
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--subtle);
+  border-radius: 8px;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 6%, transparent), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* ---------- Printing: only the element marked #print-area is printed (used by the transfer document) ---------- */
+@media print {
+  body * { visibility: hidden !important; }
+  #print-area, #print-area * { visibility: visible !important; }
+  #print-area { position: absolute; left: 0; top: 0; width: 100%; background: #fff !important; color: #000 !important; }
+  .no-print { display: none !important; }
+  @page { margin: 14mm; }
+}

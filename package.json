@@ -1,0 +1,34 @@
+{
+  "name": "usha-pharmacy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Usha Pharmacy \u2014 multi-tenant wholesale pharmacy ERP (React + Express + MongoDB)",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently -n api,web -c green,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server run start",
+    "seed": "npm --prefix server run seed",
+    "lint": "npm --prefix client run lint",
+    "test:server": "npm --prefix server test",
+    "test:client": "npm --prefix client test",
+    "test": "npm run test:server && npm run test:client",
+    "verify": "npm run lint && npm run build && npm run test:client && npm run test:server",
+    "migrate": "npm --prefix server run migrate",
+    "prepare": "simple-git-hooks",
+    "hooks": "simple-git-hooks"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6",
+    "simple-git-hooks": "^2.14.0"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npm run lint",
+    "pre-push": "npm run verify"
+  }
+}

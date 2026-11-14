@@ -1,0 +1,93 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
+import dotenv from 'dotenv';
+import { z } from 'zod';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const nodeEnv = process.env.NODE_ENV || 'development';
+
+// Environment-specific file first (e.g. .env.production), then the shared .env.
+// dotenv never overrides a variable that is already set, so real environment variables win.
+dotenv.config({ path: path.join(root, `.env.${nodeEnv}`), quiet: true });
+dotenv.config({ path: path.join(root, '.env'), quiet: true });
+
+const emptyToUndefined = (v) => (v === '' ? undefined : v);
+
+const schema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+    MONGODB_URI: z.preprocess(emptyToUndefined, z.string().regex(/^mongodb(\+srv)?:\/\//, 'must start with mongodb:// or mongodb+srv://').optional()),
+    JWT_SECRET: z.preprocess(emptyToUndefined, z.string().min(32, 'must be at least 32 characters').optional()),
+    // One or more allowed browser origins, comma separated.
+    CLIENT_ORIGIN: z.string().default('http://localhost:5173'),
+
+    // --- Authentication / sessions ---
+    ACCESS_TOKEN_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
+    SESSION_HOURS: z.coerce.number().int().min(1).max(72).default(12), // lifetime without "remember me"
+    REMEMBER_ME_DAYS: z.coerce.number().int().min(1).max(90).default(30),
+    COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+    COOKIE_SECURE: z.preprocess((v) => (v === undefined || v === '' ? undefined : v === 'true'), z.boolean().optional()),
+    MAX_FAILED_LOGINS: z.coerce.number().int().min(3).max(20).default(5),
+    LOCKOUT_MINUTES: z.coerce.number().int().min(1).max(1440).default(15),
+
+    // --- Initial administrator (used only by `npm run seed`) ---
+    ADMIN_ORG_NAME: z.string().trim().min(1).default('Usha Pharmacy'),
+    ADMIN_NAME: z.string().trim().min(1).default('Usha Admin'),
+    // A placeholder, matching .env.example: a real address does not belong in the source. Every install sets
+    // ADMIN_EMAIL in its own .env, so this default is only ever reached by a seed run that forgot to.
+    ADMIN_EMAIL: z.string().trim().toLowerCase().email().default('admin@example.com'),
+    ADMIN_INITIAL_PASSWORD: z.preprocess(emptyToUndefined, z.string().optional()),
+    ADMIN_REQUIRE_PASSWORD_CHANGE: z.preprocess((v) => v === 'true', z.boolean()),
+  })
+  .superRefine((v, ctx) => {
+    if (v.NODE_ENV === 'production') {
+      if (!v.MONGODB_URI) ctx.addIssue({ code: 'custom', path: ['MONGODB_URI'], message: 'is required in production' });
+      if (!v.JWT_SECRET) ctx.addIssue({ code: 'custom', path: ['JWT_SECRET'], message: 'is required in production' });
+    }
+    if (v.COOKIE_SAME_SITE === 'none' && v.COOKIE_SECURE === false) {
+      ctx.addIssue({ code: 'custom', path: ['COOKIE_SECURE'], message: 'must not be false when COOKIE_SAME_SITE=none' });
+    }
+  });
+
+const parsed = schema.safeParse(process.env);
+if (!parsed.success) {
+  const lines = parsed.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`);
+  // Print variable names and problems only, never values.
+  console.error(`\nInvalid environment configuration:\n${lines.join('\n')}\n\nSee server/.env.example.\n`);
+  process.exit(1);
+}
+
+const e = parsed.data;
+
+export const env = {
+  nodeEnv: e.NODE_ENV,
+  isProd: e.NODE_ENV === 'production',
+  isTest: e.NODE_ENV === 'test',
+  port: e.PORT,
+  mongoUri: e.MONGODB_URI || '',
+  // Without a configured secret (development/test only) use a random one: sessions reset on restart.
+  jwtSecret: e.JWT_SECRET || crypto.randomBytes(32).toString('hex'),
+  clientOrigins: e.CLIENT_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean),
+  auth: {
+    accessTokenSeconds: e.ACCESS_TOKEN_MINUTES * 60,
+    sessionMs: e.SESSION_HOURS * 3600 * 1000,
+    rememberMs: e.REMEMBER_ME_DAYS * 24 * 3600 * 1000,
+    maxFailedLogins: e.MAX_FAILED_LOGINS,
+    lockoutMs: e.LOCKOUT_MINUTES * 60 * 1000,
+    cookie: {
+      sameSite: e.COOKIE_SAME_SITE,
+      // Secure cookies in production (and whenever SameSite=None, which browsers require).
+      secure: e.COOKIE_SECURE ?? (e.NODE_ENV === 'production' || e.COOKIE_SAME_SITE === 'none'),
+    },
+  },
+  admin: {
+    orgName: e.ADMIN_ORG_NAME,
+    name: e.ADMIN_NAME,
+    email: e.ADMIN_EMAIL,
+    initialPassword: e.ADMIN_INITIAL_PASSWORD || '',
+    requirePasswordChange: e.ADMIN_REQUIRE_PASSWORD_CHANGE,
+  },
+  root,
+};
