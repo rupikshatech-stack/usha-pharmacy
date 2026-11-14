@@ -40,6 +40,20 @@ Open <http://localhost:5173>. Health check: `GET http://localhost:4000/api/healt
 `npm run seed` is safe to repeat — it never overwrites or duplicates an existing account.
 The browser suite in `e2e/` has its own dependencies: run `npm install` there once if you want it.
 
+### Running the backend and frontend separately
+
+`npm run dev` just starts two independent processes. Run them on their own when you only need one, or want
+separate terminals:
+
+| | Command | Listens on |
+|---|---|---|
+| Backend (API) | `npm run dev:server` | <http://localhost:4000> — nodemon restarts it on change |
+| Frontend (web app) | `npm run dev:client` | <http://localhost:5173> — Vite, which proxies `/api` to the backend |
+
+The frontend does nothing useful without the backend: every page, including sign-in, calls the API. Vite sends
+`/api` to `VITE_DEV_API_TARGET` (default `http://localhost:4000`). The backend needs no MongoDB install in
+development; it starts the embedded replica set on port 27018 unless `MONGODB_URI` is set.
+
 ### Environment — `server/.env`
 
 Variables are validated at startup; the server exits naming any that are invalid. Real environment
@@ -88,7 +102,9 @@ variables win over the file. **Never commit `.env` files** (they are git-ignored
 > With `SMTP_HOST` unset, a console mailer logs messages and **sends nothing**. That is the default
 > so a half-configured install cannot mail real pharmacies.
 
-**Other**: `UPLOAD_DIR` (file storage, default `server/uploads`), and the AI-billing and
+**Other**: `UPLOAD_DIR` (file storage, default `server/uploads`); optional upload limits
+`SETTINGS_LOGO_MAX_MB` (2), `SETTINGS_DOCUMENT_MAX_MB` (5) and `PRODUCT_IMAGE_MAX_MB` (5); `SETTINGS_ORPHAN_HOURS`
+(24), how old an unattached upload must be before `scripts/cleanup-uploads.js` removes it; and the AI-billing and
 invoice-reading keys (`AI_BILLING_*`, `GOOGLE_*`, `GEMINI_API_KEY`, `OPENAI_API_KEY`), documented in
 [docs/invoice-reading-setup.md](docs/invoice-reading-setup.md).
 
