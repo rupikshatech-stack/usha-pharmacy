@@ -5,7 +5,8 @@
   "description": "Browser tests for the Usha Pharmacy UI. Runs against a throwaway database and its own API/web servers.",
   "scripts": {
     "e2e": "node all.mjs",
-    "test": "node all.mjs"
+    "test": "node all.mjs",
+    "crossings": "node crossings.mjs"
   },
   "devDependencies": {
     "axe-core": "4.10.2",

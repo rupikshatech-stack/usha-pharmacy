@@ -1,7 +1,7 @@
 // Starts an isolated copy of the app for browser tests: a throwaway in-memory database with demo data, and the real API on
 // port 4100. It never touches the development database. (The web server on port 5200 is started by run.mjs.)
 process.env.CLIENT_ORIGIN = 'http://localhost:5200,http://127.0.0.1:5200';
-process.env.HARNESS_PORT = '4100';
+process.env.HARNESS_PORT ||= '4100';
 
 const { startHarness, PASSWORD, futureDate } = await import('../server/tests/helpers/harness.js');
 
@@ -23,6 +23,16 @@ export const STAFF = { email: 'staff@e2e.test', name: 'Rahul Nair' };
 // somebody who CANNOT manage users, and a browser test should not have to seed its own person to find one.
 if (!(await h.models.User.collection.findOne({ email: STAFF.email }))) {
   await h.makeUser(T.org, { role: 'STAFF', name: STAFF.name, email: STAFF.email });
+}
+
+// Two platform administrators, for the /platform screens: one ready to work, one still owing a password change.
+// They belong to NO organization, which is the whole point of them.
+export const PLATFORM = { email: 'platform@e2e.test', name: 'Platform Operator' };
+export const PLATFORM_NEW = { email: 'platform-new@e2e.test', name: 'New Operator' };
+for (const [who, mustChange] of [[PLATFORM, false], [PLATFORM_NEW, true]]) {
+  if (!(await h.models.User.collection.findOne({ email: who.email }))) {
+    await h.makeUser(null, { role: 'SUPER_ADMIN', name: who.name, email: who.email, mustChangePassword: mustChange });
+  }
 }
 
 // a 2x2 PNG: a real image, so the payment proof really loads through the authenticated endpoint

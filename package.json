@@ -18,10 +18,11 @@
     "test:server": "npm --prefix server test",
     "test:client": "npm --prefix client test",
     "test": "npm run test:server && npm run test:client",
-    "verify": "npm run lint && npm run build && npm run test:client && npm run test:server",
+    "verify": "npm run lint && npm run build && npm run test:client && npm run test:server && npm run verify:crossings",
     "migrate": "npm --prefix server run migrate",
     "prepare": "simple-git-hooks",
-    "hooks": "simple-git-hooks"
+    "hooks": "simple-git-hooks",
+    "verify:crossings": "npm --prefix e2e run crossings"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",
