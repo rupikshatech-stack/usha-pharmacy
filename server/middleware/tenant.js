@@ -48,3 +48,27 @@ export const requirePermission = (...permissions) => (req, _res, next) =>
   permissions.every((p) => hasPermission(req.user, p))
     ? next()
     : next(new ApiError(403, 'You do not have permission to do that.', undefined, 'FORBIDDEN'));
+
+/**
+ * The platform door's guard. Runs after `authenticate`, and demands TWO things:
+ *
+ *   the account is a platform administrator, and
+ *   the SESSION it is using is a platform session.
+ *
+ * The second is not redundant. Without it, any session belonging to a platform account would open these routes —
+ * including one minted by some future code path that forgot the distinction. A session is the thing presented on
+ * each request, so a session is what has to be marked.
+ *
+ * Note what this guard does NOT do: it never enters a tenant context. Platform routes have no organization, so the
+ * Mongoose tenant plugin stays unscoped-and-strict for them, and any accidental read of tenant data throws rather
+ * than quietly returning somebody's invoices.
+ */
+export const requirePlatformAdmin = (req, _res, next) => {
+  if (req.user?.role !== 'SUPER_ADMIN' || req.user?.organizationId) {
+    return next(new ApiError(403, 'This area is for platform administrators.', undefined, 'PLATFORM_FORBIDDEN'));
+  }
+  if (!req.session?.isPlatform) {
+    return next(new ApiError(403, 'Sign in at the platform sign-in page to use this area.', undefined, 'PLATFORM_SESSION_REQUIRED'));
+  }
+  return next();
+};

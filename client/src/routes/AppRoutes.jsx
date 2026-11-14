@@ -34,6 +34,7 @@ import BranchPerformance from '../pages/analytics/BranchPerformance';
 import LowStock from '../pages/analytics/LowStock';
 import Settings from '../pages/settings/Settings';
 import RolesAndUsers from '../pages/roles/RolesAndUsers';
+import PlatformApp from '../pages/platform/PlatformApp';
 import ExpiryIntelligence from '../pages/analytics/ExpiryIntelligence';
 
 const RedirectKeepingQuery = ({ to }) => <Navigate to={to + useLocation().search} replace />;
@@ -46,6 +47,14 @@ export default function AppRoutes() {
       {/* Public */}
       <Route path="/login" element={guest(<Login />)} />
       <Route path="/forgot-password" element={guest(<ForgotPassword />)} />
+
+      {/*
+        The platform area. Outside ProtectedRoute on purpose: a platform administrator has no organization, so the
+        tenant guard, the app shell and AuthContext all have nothing to say about them. It owns its own sign-in,
+        its own session check and its own frame, and it is reachable only by typing the address — nothing in the
+        pharmacy app links here.
+      */}
+      <Route path="/platform" element={<PlatformApp />} />
 
       {/* Signed in, no app shell */}
       <Route element={<AuthOnlyRoute />}>

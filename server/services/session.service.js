@@ -17,12 +17,19 @@ export const signAccessToken = (userId, sessionId) =>
 export const verifyAccessToken = (token, { ignoreExpiration = false } = {}) =>
   jwt.verify(token, env.jwtSecret, { algorithms: ['HS256'], ignoreExpiration });
 
-/** Creates a session and the three tokens that go into the browser's cookies. */
-export async function createSession(user, { rememberMe, ip, userAgent }) {
+/**
+ * Creates a session and the three tokens that go into the browser's cookies.
+ *
+ * `platform: true` is the only way to make a session with no organization, and it is asked for explicitly by the
+ * platform sign-in path. Everything else keeps the behaviour it always had: the organization comes off the user,
+ * and the model refuses the write if it is missing.
+ */
+export async function createSession(user, { rememberMe, ip, userAgent, platform = false }) {
   const refreshToken = randomToken();
   const ttl = rememberMe ? env.auth.rememberMs : env.auth.sessionMs;
   const session = await Session.create({
-    organizationId: user.organizationId,
+    organizationId: platform ? undefined : user.organizationId,
+    isPlatform: platform,
     userId: user._id,
     refreshHash: sha256(refreshToken),
     rememberMe,

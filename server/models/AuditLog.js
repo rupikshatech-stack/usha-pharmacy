@@ -16,7 +16,18 @@ class AuditImmutableError extends Error {
 
 const auditSchema = new Schema(
   {
-    organizationId: orgField,
+    /**
+     * Required for every organization event, and omitted only for a platform one - exactly the shape Session uses,
+     * and for the same reason: a platform administrator belongs to no organization, but their actions (signing in,
+     * creating a pharmacy) are the ones most worth keeping a record of, so they must be writable somewhere.
+     *
+     * As on Session, the condition is the explicit `isPlatform` flag and never "the organization happens to be
+     * missing", so a dropped organizationId stays a loud validation failure instead of silently producing an
+     * unscoped audit row.
+     */
+    organizationId: { ...orgField, required: function () { return !this.isPlatform; } },
+    // A platform-level event, belonging to no organization. Never returned by an organization's activity log.
+    isPlatform: { type: Boolean, default: false },
     userId: { type: Types.ObjectId, ref: 'User' },
     userName: String,
     action: { type: String, required: true },

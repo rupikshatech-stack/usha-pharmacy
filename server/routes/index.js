@@ -16,7 +16,8 @@ import dashboard from './dashboard.routes.js';
 import activity from './activity.routes.js';
 import organization from './organization.routes.js';
 import settings from './settings.routes.js';
-import roles from './roles.routes.js';
+import { roles, users } from './roles.routes.js';
+import platform from './platform.routes.js';
 import stock from './stock.routes.js';
 import batches from './batch.routes.js';
 import imports from './import.routes.js';
@@ -44,7 +45,9 @@ api.use('/dashboard', dashboard);
 api.use('/activity', activity);
 api.use('/organization', organization); // the older, narrower profile endpoint; /settings is the full surface
 api.use('/settings', settings);
-api.use('/', roles); // /roles and /users — the administration screens
+api.use('/roles', roles); // the administration screens
+api.use('/users', users);
+api.use('/platform', platform); // platform administration: no tenant, never under tenantGuard
 api.use('/stock', stock);
 api.use('/transfers', transfers); // inter-store transfers (draft -> send -> receive)
 api.use('/branches', stores); // the organization's stores
