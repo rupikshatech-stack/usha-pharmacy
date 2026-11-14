@@ -15,3 +15,35 @@ gcp-key*.json
 secrets/
 server/secrets/
 !server/secrets/README.md
+
+# environment files: the per-environment files the app reads (.env.production, .env.development, ...) hold real
+# credentials and must never be committed. The templates stay tracked.
+.env.*
+!.env.example
+!.env.*.example
+
+# build output, coverage reports and logs
+build/
+coverage/
+logs/
+*.log
+npm-debug.log*
+
+# editor and OS files (the same shape client/.gitignore already uses for .vscode)
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# private keys and certificates
+*.pem
+*.p12
+*.pfx
+
+# database dumps and backups: these are production data, not source
+dump/
+backup/
+backups/
+*.bson
+*.dump
