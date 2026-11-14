@@ -29,3 +29,5 @@ export { TransferEvent, TransferEventImmutableError, TRANSFER_EVENT_ACTIONS } fr
 export { Transfer, TRANSFER_STATUSES, OPEN_TRANSFER_STATUSES, IN_TRANSIT_STATUSES, CANCELLABLE_TRANSFER_STATUSES } from './Transfer.js';
 export { ImportJob, IMPORT_STATUSES, ROW_STATUSES } from './ImportJob.js';
 export { Counter, nextSeq } from './Counter.js';
+export { ExpiryAlert } from './ExpiryAlert.js';
+export { AlertRun, ALERT_KINDS } from './AlertRun.js';

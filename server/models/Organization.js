@@ -28,7 +28,9 @@ export const DATE_FORMATS = ['dd MMM yyyy', 'dd/MM/yyyy', 'dd-MM-yyyy', 'yyyy-MM
  */
 export const DEFAULT_DATE_FORMAT = 'dd MMM yyyy';
 export const ROUND_OFF_NEAREST = [1, 0.5];
-export const NOTIFICATION_CHANNELS = ['in_app', 'none'];
+// 'email' sends the daily digest from scripts/run-expiry-alerts.js; 'in_app' is the notification bell. A channel
+// of 'email' still shows the in-app alert — the email is in addition to it, not instead of it.
+export const NOTIFICATION_CHANNELS = ['in_app', 'email', 'none'];
 
 export const GSTIN_PATTERN = /^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 

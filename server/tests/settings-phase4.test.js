@@ -648,10 +648,17 @@ describe('What the bell shows', () => {
     assert.ok('lowStock' in a.counts, 'the dashboard cards still get their counts');
   });
 
-  it('has no channel but the in-app bell', async () => {
+  /**
+   * This pinned "in_app is the only channel" when it was written, which was true then. `email` became a real
+   * channel when the near-expiry digest was built (scripts/run-expiry-alerts.js), so the half of the assertion
+   * about email now describes the feature rather than its absence. The other half still matters: a channel the
+   * system cannot actually deliver on must still be refused.
+   */
+  it('accepts only the channels that exist', async () => {
     const org = await h.makeTenant('P4 Channel Org');
-    assert.equal((await saveGeneral(org.client, { notifications: { lowStock: { channel: 'whatsapp' } } })).status, 400);
-    assert.equal((await saveGeneral(org.client, { notifications: { lowStock: { channel: 'email' } } })).status, 400);
+    assert.equal((await saveGeneral(org.client, { notifications: { lowStock: { channel: 'whatsapp' } } })).status, 400, 'whatsapp cannot be delivered, so it cannot be chosen');
+    assert.equal((await saveGeneral(org.client, { notifications: { lowStock: { channel: 'email' } } })).status, 200, 'email is a real channel now');
+    assert.equal((await saveGeneral(org.client, { notifications: { lowStock: { channel: 'none' } } })).status, 200);
   });
 });
 
