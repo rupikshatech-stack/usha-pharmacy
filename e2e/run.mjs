@@ -2173,6 +2173,7 @@ await check('selling point: GST is split out of the inclusive price — the brea
   await row.waitFor();
 
   // the breakdown: ₹112 each, GST 12% inside the price → taxable ₹200, CGST ₹12, SGST ₹12, total ₹224
+  await d.getByRole("button", { name: /Customer . billing/ }).click(); // the details are collapsed until opened
   const breakdown = d.locator('dl[aria-label="Billing breakdown"]').first();
   await breakdown.waitFor();
   const text = (await breakdown.innerText()).replace(/\s+/g, ' ');

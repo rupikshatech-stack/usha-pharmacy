@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Search, ShoppingCart, Trash2, Pause, Save, Printer, RotateCcw, Minus, Plus, Pill, ListOrdered } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, Pause, Save, Printer, RotateCcw, Minus, Plus, Pill, ListOrdered, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { invoiceService } from '../../services/invoiceService';
 import { inr, newIdempotencyKey } from '../../utils/format';
@@ -39,8 +39,7 @@ export default function SellingPoint() {
   const { user } = useAuth();
   const org = useFetch('/organization');
   const orgState = (org.data?.gstin || '').slice(0, 2); // the first two digits of a GSTIN are the state
-  const [search, setSearch] = useState('');
-  const q = useDebounced(search, 250);
+  const [search, setSearch] = useState('');  const q = useDebounced(search, 250);
   const { data: products, loading, error, reload } = useFetch('/pos/products', { q });
 
   const [cart, setCart] = useState([]);
@@ -50,6 +49,8 @@ export default function SellingPoint() {
   const [saving, setSaving] = useState(false);
 
   const searchRef = useRef(null);
+  // Customer + billing details are collapsed by default so the medicine list gets the height; the total stays in view.
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const phoneRef = useRef(null);
   const payRef = useRef(null);
   const amountRef = useRef(null);
@@ -173,15 +174,17 @@ export default function SellingPoint() {
   useEffect(() => {
     const onKey = (e) => {
       const h = handlers.current;
+      // The fields live in the collapsible block: open it first, then focus once it has rendered.
+      const focusDetail = (ref) => { setDetailsOpen(true); setTimeout(() => ref.current?.focus(), 0); };
       const map = {
         F1: () => searchRef.current?.focus(),
         F2: () => h.save(false),
         F5: () => h.save(true),
         F6: () => h.hold(),
         F7: () => h.setShowHeld(true),
-        F8: () => phoneRef.current?.focus(),
-        F9: () => payRef.current?.focus(),
-        F10: () => amountRef.current?.focus(),
+        F8: () => focusDetail(phoneRef),
+        F9: () => focusDetail(payRef),
+        F10: () => focusDetail(amountRef),
         Escape: () => h.reset(),
       };
       if (e.ctrlKey && e.key.toLowerCase() === 's') {
@@ -247,7 +250,7 @@ export default function SellingPoint() {
           <Shortcut k="Esc" label="Clear" />
         </div>
         {/* tabIndex makes the list scrollable by keyboard even when it is empty or shows a message, which is the only way to reach it without a pointer */}
-        <div className="min-h-0 flex-1 overflow-y-auto p-4" tabIndex={0} role="region" aria-label="Search results">
+        <div className="min-h-[260px] flex-1 overflow-y-auto p-4" tabIndex={0} role="region" aria-label="Search results">
           {loading && !products ? (
             <Spinner />
           ) : error ? (
@@ -294,104 +297,25 @@ export default function SellingPoint() {
             </div>
           )}
         </div>
-      </section>
-
-      {/* Cart + billing */}
-      {/*
-        The billing column. It was a flat 480px, which is where both complaints came from: six columns of cart
-        crammed into it overflowed sideways (one axis set to `auto` promotes the other to `auto` too, so the
-        horizontal scrollbar was a side effect, not a layout choice), and the list itself was left fighting the two
-        cards below it for height. It now widens with the screen and the cart is the part that gets the slack.
-
-        The widths are a split, not a grab: every pixel added here comes out of the medicine picker on the left.
-        1024 keeps the old 480 because there is simply nothing spare at that size; the growth starts at 1280, where
-        the picker can afford it.
-      */}
-      <aside className="flex w-full flex-col border-l border-line bg-card lg:w-[480px] xl:w-[560px] 2xl:w-[680px]">
-        {/* The count is worth stating: once the list scrolls, "how many lines are on this bill?" stops being
-            answerable by looking. */}
-        <div className="flex items-center justify-between border-b border-line bg-subtle/60 px-3 py-2">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-muted">Items on this bill</span>
-          <span className="rounded-full bg-card px-2 py-0.5 text-xs font-bold tabular-nums" aria-live="polite">
-            {cart.length} {cart.length === 1 ? 'item' : 'items'}
+        <button
+          type="button"
+          onClick={() => setDetailsOpen((v) => !v)}
+          aria-expanded={detailsOpen}
+          className="flex shrink-0 items-center justify-between gap-3 border-t border-line bg-subtle/60 px-4 py-2 text-left hover:bg-subtle"
+        >
+          <span className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-muted">
+            <ChevronUp className={cx("h-4 w-4 transition-transform", detailsOpen && "rotate-180")} aria-hidden="true" />
+            Customer & billing
           </span>
-        </div>
-        {/*
-          flex-1 with a real floor: the cart is the panel that grows, and it scrolls DOWN, never across.
-
-          It stays a real <table> on purpose. The row/columnheader semantics are what a screen reader reads out,
-          and what the browser tests locate a line by — swapping in <div>s would look identical and quietly break
-          both. Only the widths changed.
-        */}
-        <div className="min-h-[220px] flex-1 overflow-y-auto overflow-x-hidden">
-          {cart.length === 0 ? (
-            <EmptyState icon={ShoppingCart} title="No items added yet" hint="Search or press F1 to add medicine" />
-          ) : (
-            <table className="w-full table-fixed text-left text-xs">
-              <colgroup>
-                {/* The medicine name takes whatever the numbers do not, so nothing has to scroll sideways. */}
-                <col />
-                <col className="w-[72px]" />
-                <col className="w-[64px]" />
-                <col className="w-[116px]" />
-                <col className="w-[80px]" />
-                <col className="w-[40px]" />
-              </colgroup>
-              <thead className="sticky top-0 z-10 bg-card text-[10px] uppercase text-muted shadow-[0_1px_0_var(--line)]">
-                <tr>
-                  {['Item', 'Price', 'Disc%', 'Qty', 'Total', ''].map((h) => (
-                    <th key={h} className="px-2.5 py-2.5 font-semibold">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {cart.map((i) => (
-                  <tr key={i.medicineId} className="border-t border-line align-middle">
-                    <td className="px-2.5 py-2">
-                      {/* title= so a name too long for the column is still readable on hover */}
-                      <div className="truncate font-semibold" title={i.name}>{i.name}</div>
-                      <div className="truncate text-muted">Batch {i.batchNo}</div>
-                    </td>
-                    <td className="px-2.5 py-2 tabular-nums">{inr(i.price)}</td>
-                    <td className="px-2.5 py-2">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        aria-label={`Discount percent for ${i.name}`}
-                        value={i.discountPercent}
-                        onChange={(e) => patch(i.medicineId, { discountPercent: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
-                        className="w-full rounded-lg border border-line bg-card px-1.5 py-1"
-                      />
-                    </td>
-                    <td className="px-2.5 py-2">
-                      <div className="flex items-center gap-1">
-                        <button aria-label="Decrease quantity" onClick={() => setQty(i, i.quantity - 1)} className="shrink-0 rounded-md border border-line p-1"><Minus className="h-3 w-3" /></button>
-                        <input
-                          type="number"
-                          aria-label={`Quantity for ${i.name}`}
-                          value={i.quantity}
-                          onChange={(e) => setQty(i, e.target.value)}
-                          className="w-full min-w-0 rounded-md border border-line bg-card py-1 text-center"
-                        />
-                        <button aria-label="Increase quantity" onClick={() => setQty(i, i.quantity + 1)} className="shrink-0 rounded-md border border-line p-1"><Plus className="h-3 w-3" /></button>
-                      </div>
-                    </td>
-                    <td className="px-2.5 py-2 font-semibold tabular-nums">{inr(i.price * i.quantity * (1 - i.discountPercent / 100))}</td>
-                    <td className="px-1.5">
-                      <button aria-label={`Remove ${i.name}`} onClick={() => setCart((c) => c.filter((x) => x.medicineId !== i.medicineId))} className="rounded-md p-1 text-danger hover:bg-danger-soft"><Trash2 className="h-4 w-4" /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Side by side from `lg` up, where the column is wide enough for two readable cards; stacked below that,
-            where one column of full-width fields beats two of squeezed ones. Either way this block takes its own
-            height and no more - the cart above it keeps the rest. */}
-        <div className="grid shrink-0 gap-3 border-t border-line bg-subtle/60 p-3 sm:grid-cols-2">
+          <span className="flex items-baseline gap-2">
+            <span className="text-xs text-muted">Total payable</span>
+            <span className="text-lg font-extrabold tabular-nums">{inr(totals.total)}</span>
+          </span>
+        </button>
+        {/* Stacked: customer and payment first, then the billing summary, in one column of full-width fields.
+            It scrolls if the screen is short; otherwise it takes its own
+            height and no more - the medicine list above it keeps the rest. */}
+        <div className={cx("shrink-0 content-start gap-3 overflow-y-auto border-t border-line bg-subtle/60 p-3 max-h-[45vh]", detailsOpen ? "grid" : "hidden")}>
           <div className="space-y-2 rounded-2xl border border-line bg-card p-3 text-sm">
             <div className="text-[11px] font-bold uppercase tracking-wide text-muted">Customer & payment</div>
             <input className={inputCls} placeholder="Walk-in Customer" aria-label="Customer name" value={form.customer.name} onChange={setCust('name')} />
@@ -491,6 +415,100 @@ export default function SellingPoint() {
           <Button variant="secondary" loading={saving} onClick={() => save(false)}><Save className="h-4 w-4" /> Save</Button>
           <Button loading={saving} onClick={() => save(true)}><Printer className="h-4 w-4" /> Save & Print</Button>
         </div>
+      </section>
+
+      {/* Cart + billing */}
+      {/*
+        The billing column. It was a flat 480px, which is where both complaints came from: six columns of cart
+        crammed into it overflowed sideways (one axis set to `auto` promotes the other to `auto` too, so the
+        horizontal scrollbar was a side effect, not a layout choice), and the list itself was left fighting the two
+        cards below it for height. It now widens with the screen and the cart is the part that gets the slack.
+
+        The widths are a split, not a grab: every pixel added here comes out of the medicine picker on the left.
+        1024 keeps the old 480 because there is simply nothing spare at that size; the growth starts at 1280, where
+        the picker can afford it.
+      */}
+      <aside className="flex w-full flex-col border-line bg-card lg:order-first lg:w-[420px] lg:border-r xl:w-[460px] 2xl:w-[520px]">
+        {/* The count is worth stating: once the list scrolls, "how many lines are on this bill?" stops being
+            answerable by looking. */}
+        <div className="flex items-center justify-between border-b border-line bg-subtle/60 px-3 py-2">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-muted">Items on this bill</span>
+          <span className="rounded-full bg-card px-2 py-0.5 text-xs font-bold tabular-nums" aria-live="polite">
+            {cart.length} {cart.length === 1 ? 'item' : 'items'}
+          </span>
+        </div>
+        {/*
+          flex-1 with a real floor: the cart is the panel that grows, and it scrolls DOWN, never across.
+
+          It stays a real <table> on purpose. The row/columnheader semantics are what a screen reader reads out,
+          and what the browser tests locate a line by — swapping in <div>s would look identical and quietly break
+          both. Only the widths changed.
+        */}
+        <div className="min-h-[220px] flex-1 overflow-y-auto overflow-x-hidden">
+          {cart.length === 0 ? (
+            <EmptyState icon={ShoppingCart} title="No items added yet" hint="Search or press F1 to add medicine" />
+          ) : (
+            <table className="w-full table-fixed text-left text-xs">
+              <colgroup>
+                {/* The medicine name takes whatever the numbers do not, so nothing has to scroll sideways. */}
+                <col />
+                <col className="w-[64px]" />
+                <col className="w-[56px]" />
+                <col className="w-[104px]" />
+                <col className="w-[68px]" />
+                <col className="w-[36px]" />
+              </colgroup>
+              <thead className="sticky top-0 z-10 bg-card text-[10px] uppercase text-muted shadow-[0_1px_0_var(--line)]">
+                <tr>
+                  {['Item', 'Price', 'Disc%', 'Qty', 'Total', ''].map((h) => (
+                    <th key={h} className="px-2.5 py-2.5 font-semibold">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {cart.map((i) => (
+                  <tr key={i.medicineId} className="border-t border-line align-middle">
+                    <td className="px-2.5 py-2">
+                      {/* title= so a name too long for the column is still readable on hover */}
+                      <div className="truncate font-semibold" title={i.name}>{i.name}</div>
+                      <div className="truncate text-muted">Batch {i.batchNo}</div>
+                    </td>
+                    <td className="px-2.5 py-2 tabular-nums">{inr(i.price)}</td>
+                    <td className="px-2.5 py-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        aria-label={`Discount percent for ${i.name}`}
+                        value={i.discountPercent}
+                        onChange={(e) => patch(i.medicineId, { discountPercent: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
+                        className="w-full rounded-lg border border-line bg-card px-1.5 py-1"
+                      />
+                    </td>
+                    <td className="px-2.5 py-2">
+                      <div className="flex items-center gap-1">
+                        <button aria-label="Decrease quantity" onClick={() => setQty(i, i.quantity - 1)} className="shrink-0 rounded-md border border-line p-1"><Minus className="h-3 w-3" /></button>
+                        <input
+                          type="number"
+                          aria-label={`Quantity for ${i.name}`}
+                          value={i.quantity}
+                          onChange={(e) => setQty(i, e.target.value)}
+                          className="w-full min-w-0 rounded-md border border-line bg-card py-1 text-center"
+                        />
+                        <button aria-label="Increase quantity" onClick={() => setQty(i, i.quantity + 1)} className="shrink-0 rounded-md border border-line p-1"><Plus className="h-3 w-3" /></button>
+                      </div>
+                    </td>
+                    <td className="px-2.5 py-2 font-semibold tabular-nums">{inr(i.price * i.quantity * (1 - i.discountPercent / 100))}</td>
+                    <td className="px-1.5">
+                      <button aria-label={`Remove ${i.name}`} onClick={() => setCart((c) => c.filter((x) => x.medicineId !== i.medicineId))} className="rounded-md p-1 text-danger hover:bg-danger-soft"><Trash2 className="h-4 w-4" /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
       </aside>
 
       {showHeld && (
