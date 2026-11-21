@@ -57,7 +57,9 @@ export async function getExpiryInsights(org, user, query = {}, now = new Date())
   // 1. The wave: stock on hand now, grouped by the month it expires in.
   const months = new Map(monthKeys(12, now).map(({ key, at }) => [key, { key, at, costValue: 0, mrpValue: 0, projectedLoss: 0, batches: 0, quantity: 0 }]));
   for (const r of live) {
-    if (!r.expiryDate) continue;
+    // Already-expired stock is not part of the wave, even when it expired earlier in the current month (which is
+    // one of the twelve buckets) - it is shown as expired elsewhere.
+    if (!r.expiryDate || r.bucket === 'expired') continue;
     const m = months.get(r.expiryDate.slice(0, 7));
     if (!m) continue; // already expired, or more than a year out
     m.costValue += r.costValue;

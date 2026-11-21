@@ -85,7 +85,7 @@ describe('the charts', () => {
   test('stock already expired, and stock more than a year out, are not in the wave', async () => {
     const { data } = await client.get('/analytics/expiry/insights');
     const total = data.expiryByMonth.reduce((n, m) => n + m.costValue, 0);
-    assert.ok(!data.expiryByMonth.some((m) => m.key === monthOf(-20)), 'a past month is not one of the twelve ahead');
+    assert.ok(!data.expiryByMonth.some((m) => m.key === monthOf(-45)), 'a past month is not one of the twelve ahead'); // -20 days is still the current month late in a month, and that month is in the wave
     assert.ok(total < 13200, 'the ₹2,000 expired lot and the ₹1,000 lot a year out are both outside the window');
   });
 
