@@ -1,5 +1,6 @@
 import { InvoiceExtraction, InvoiceOcr, InvoiceUpload, Order, UPLOAD_STATUS_LABEL } from '../models/index.js';
 import { ApiError } from '../utils/ApiError.js';
+import { runInBackground } from '../utils/background.js';
 import { escapeRegex } from '../utils/regex.js';
 import { runWithTenant } from '../utils/tenantContext.js';
 import { audit } from './audit.service.js';
@@ -141,7 +142,7 @@ export async function startAiExtraction(req, id, { again = false } = {}) {
   ).lean();
   if (!claimed) throw fail(409, 'The AI is already reading this invoice.', 'AI_ALREADY_RUNNING');
   await audit(req, { action: again ? 'AI_EXTRACT_REPROCESS' : 'AI_EXTRACT_START', entity: 'InvoiceUpload', entityId: u._id, message: `${again ? 'Re-extracting' : 'Extracting'} invoice ${u.uploadId} with ${status.label}` });
-  setImmediate(() => run(req.orgId, u._id, { _id: req.user._id, name: req.user.name }).catch(() => {}));
+  runInBackground(() => run(req.orgId, u._id, { _id: req.user._id, name: req.user.name }));
   return extractionStatus(req.orgId, u._id);
 }
 

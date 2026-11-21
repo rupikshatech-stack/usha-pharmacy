@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { ApiError } from '../utils/ApiError.js';
 import { IMAGE_EXT, IMAGE_TYPES, sniffImage } from '../utils/imageFile.js';
 import { getStorage } from './storage/index.js';
+import { capUpload } from '../utils/uploadCap.js';
 
 /**
  * Photographs of products. A picture is stored like every other upload in this system: under a name the SERVER makes,
@@ -12,7 +13,7 @@ import { getStorage } from './storage/index.js';
  *   PRODUCT_IMAGE_MAX_MB   largest picture (default 5)
  */
 const num = (v, d) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : d);
-export const maxBytes = () => Math.round(num(process.env.PRODUCT_IMAGE_MAX_MB, 5) * 1024 * 1024);
+export const maxBytes = () => capUpload(Math.round(num(process.env.PRODUCT_IMAGE_MAX_MB, 5) * 1024 * 1024));
 export { IMAGE_TYPES };
 
 const fail = (status, message, code, details) => new ApiError(status, message, details, code);

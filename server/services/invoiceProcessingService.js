@@ -1,5 +1,6 @@
 import { InvoiceOcr, InvoiceUpload, UPLOAD_STATUS_LABEL } from '../models/index.js';
 import { ApiError } from '../utils/ApiError.js';
+import { runInBackground } from '../utils/background.js';
 import { runWithTenant } from '../utils/tenantContext.js';
 import { audit } from './audit.service.js';
 import { reviewDraft } from './aiBilling.service.js';
@@ -123,7 +124,7 @@ export async function startProcessing(req, id, { again = false } = {}) {
   ).lean();
   if (!claimed) throw fail(409, 'This invoice is already being read.', 'UPLOAD_STATE');
   await audit(req, { action: again ? 'AI_INVOICE_REPROCESS' : 'AI_INVOICE_SCAN_START', entity: 'InvoiceUpload', entityId: u._id, message: `${again ? 'Reading again' : 'Reading'} supplier invoice ${u.uploadId}${ready.ocr.configured ? ` with ${ready.ocr.label}` : ''}` });
-  setImmediate(() => run(req.orgId, u._id, req.user._id, req.user.name).catch(() => {}));
+  runInBackground(() => run(req.orgId, u._id, req.user._id, req.user.name));
   return presentUpload(claimed);
 }
 

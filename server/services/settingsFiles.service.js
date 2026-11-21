@@ -4,6 +4,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { DOCUMENT_EXT, DOCUMENT_TYPES, IMAGE_EXT, IMAGE_TYPES, cleanFileName, sniffDocument, sniffImage } from '../utils/imageFile.js';
 import { getStorage } from './storage/index.js';
 import { audit } from './audit.service.js';
+import { capUpload } from '../utils/uploadCap.js';
 
 /**
  * The two kinds of file a Settings screen takes: the store logo, and a scanned drug licence.
@@ -22,7 +23,7 @@ import { audit } from './audit.service.js';
  */
 const num = (v, d) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : d);
 export const logoMaxBytes = () => Math.round(num(process.env.SETTINGS_LOGO_MAX_MB, 2) * 1024 * 1024);
-export const documentMaxBytes = () => Math.round(num(process.env.SETTINGS_DOCUMENT_MAX_MB, 5) * 1024 * 1024);
+export const documentMaxBytes = () => capUpload(Math.round(num(process.env.SETTINGS_DOCUMENT_MAX_MB, 5) * 1024 * 1024));
 export { IMAGE_TYPES, DOCUMENT_TYPES };
 
 const fail = (status, message, code, details) => new ApiError(status, message, details, code);

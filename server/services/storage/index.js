@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { blobStorage, blobConfigured } from './blobStorage.js';
 
 /**
  * Where uploaded files live. This is the local-disk implementation; the application only uses put / get / remove, so a cloud store
@@ -70,5 +71,12 @@ export const localStorage = {
   },
 };
 
-/** The storage in use. Swap this one line (or make it depend on a setting) to move uploads to the cloud. */
-export const getStorage = () => localStorage;
+/**
+ * The storage in use: Vercel Blob when a Blob store is connected (BLOB_STORE_ID / BLOB_READ_WRITE_TOKEN), otherwise the local disk.
+ * On Vercel the disk is ephemeral, so running there without a store would lose every upload; that is refused loudly instead.
+ */
+export const getStorage = () => {
+  if (blobConfigured()) return blobStorage;
+  if (process.env.VERCEL) throw new Error('File storage is not configured: connect a private Vercel Blob store to this project.');
+  return localStorage;
+};

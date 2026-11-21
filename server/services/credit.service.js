@@ -8,6 +8,7 @@ import { audit } from './audit.service.js';
 import { withTransaction } from './transaction.service.js';
 import { getStorage } from './storage/index.js';
 import { IMAGE_EXT, IMAGE_TYPES, cleanFileName, sniffImage } from '../utils/imageFile.js';
+import { capUpload } from '../utils/uploadCap.js';
 
 /**
  * Credit requests: a person pays, uploads a screenshot of the payment and asks for credits; an administrator decides later. This file is the only place the
@@ -33,7 +34,7 @@ const envNum = (names, d) => {
   return d;
 };
 
-export const maxBytes = () => Math.round(envNum(['CREDIT_SCREENSHOT_MAX_MB', 'MAX_PAYMENT_SCREENSHOT_SIZE_MB'], 5) * 1024 * 1024);
+export const maxBytes = () => capUpload(Math.round(envNum(['CREDIT_SCREENSHOT_MAX_MB', 'MAX_PAYMENT_SCREENSHOT_SIZE_MB'], 5) * 1024 * 1024));
 export const maxAmount = () => num(process.env.CREDIT_MAX_AMOUNT, 1000000);
 
 /** A payment amount typed as text: a positive number with at most two decimals. */

@@ -133,7 +133,7 @@ usha-pharmacy/
 │   ├── scripts/       migrations, seeds and one-off operational tools
 │   └── tests/         server test suite
 ├── e2e/         browser tests and the cross-module "crossings" suite
-└── docs/        deeper reference: module detail, invoice-reading setup
+└── docs/        deeper reference: module detail, invoice-reading setup, Vercel deployment
 ```
 
 ## Modules
@@ -364,3 +364,7 @@ What is **not** built. Each item is traceable to code or to behaviour you can se
   authenticated endpoint; a file's type is decided by its bytes, not its name.
 - `StockMovement` and `AuditLog` are append-only; corrections are new opposite entries.
 - Never commit `.env` files — they are git-ignored.
+
+## Deploying on Vercel
+
+The app can run entirely on Vercel (static client plus the API as one Function). The steps, the environment variables, and what behaves differently there (4 MB upload cap, Blob storage, cron-driven digest) are in [docs/deploy-vercel.md](docs/deploy-vercel.md).

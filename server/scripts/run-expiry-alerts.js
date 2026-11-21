@@ -6,6 +6,8 @@
 //
 // The daily near-expiry digest. This is the scheduled entry point — nothing in the web application triggers it, and
 // it must not be made to: an email that goes out when somebody opens a page is an email nobody can predict.
+// (On Vercel there is no Task Scheduler: Vercel Cron calls GET /api/cron/expiry-alerts, which refuses to run without
+// the CRON_SECRET bearer token. See routes/cron.routes.js.)
 //
 // SCHEDULING (Windows Task Scheduler, daily, early — before the pharmacy opens):
 //

@@ -1,5 +1,6 @@
 import { Medicine, Supplier } from '../models/index.js';
 import { computeOrder } from '../utils/orderMath.js';
+import { capUpload } from '../utils/uploadCap.js';
 
 /**
  * AI Billing review: turning what an invoice-reading service returned (or what a person typed in) into a draft that must be checked.
@@ -8,7 +9,7 @@ import { computeOrder } from '../utils/orderMath.js';
  * a candidate for the user to confirm, never chosen for them. Every line says what needs checking. Stock is never touched. (Reading the file itself is
  * the job of the pluggable provider in invoiceExtraction/; storing and scanning uploads is in invoiceUpload.service.js.)
  */
-export const MAX_FILE_BYTES = 10 * 1024 * 1024;
+export const MAX_FILE_BYTES = capUpload(10 * 1024 * 1024);
 export const FILE_TYPES = ['application/pdf', 'image/png', 'image/jpeg'];
 const LOW_CONFIDENCE = 0.8;
 const POSSIBLE_MATCH = 0.7; // similarity from which a product is offered as a candidate (never chosen automatically)

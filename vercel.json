@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm install --ignore-scripts && npm --prefix server install && npm --prefix client install",
+  "buildCommand": "npm --prefix client run build",
+  "outputDirectory": "client/dist",
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 300,
+      "excludeFiles": "{server/uploads/**,server/.data/**,server/.mongo-bin/**,server/tests/**,server/secrets/**,server/node_modules/mongodb-memory-server*/**,server/node_modules/.cache/**}"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/cron/expiry-alerts", "schedule": "0 1 * * *" }
+  ]
+}

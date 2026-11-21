@@ -10,6 +10,7 @@ import { ApiError } from '../../utils/ApiError.js';
  *   GOOGLE_DOCUMENT_AI_LOCATION         – the processor's region, e.g. "us" or "eu"
  *   GOOGLE_DOCUMENT_AI_PROCESSOR_ID     – the processor (an OCR, Form or Invoice parser processor)
  *   GOOGLE_APPLICATION_CREDENTIALS      – path to a service-account key file (JSON); it needs the "Document AI API User" role
+ *   GOOGLE_CREDENTIALS_JSON             – alternatively, the key's JSON itself (for hosts with no persistent disk); wins over the file path
  *   GOOGLE_DOCUMENT_AI_PROCESSOR_VERSION  optional – pin a processor version
  *   GOOGLE_DOCUMENT_AI_IMAGE_QUALITY      optional – "true" asks for image-quality scores (processors that support it)
  *   GOOGLE_DOCUMENT_AI_ENDPOINT           optional – override the API address (tests, private endpoints)
@@ -19,18 +20,23 @@ import { ApiError } from '../../utils/ApiError.js';
  * (online processing: Google's own limits apply — 20 MB and, for most processors, 15 pages per document) and signs in with a service-account key
  * (a signed JWT exchanged for a short-lived token, cached until it expires). It returns the provider-neutral OcrResult described in ocrService.js.
  */
-const REQUIRED = { GOOGLE_CLOUD_PROJECT_ID: 'project', GOOGLE_DOCUMENT_AI_LOCATION: 'location', GOOGLE_DOCUMENT_AI_PROCESSOR_ID: 'processor', GOOGLE_APPLICATION_CREDENTIALS: 'keyFile' };
+const REQUIRED = { GOOGLE_CLOUD_PROJECT_ID: 'project', GOOGLE_DOCUMENT_AI_LOCATION: 'location', GOOGLE_DOCUMENT_AI_PROCESSOR_ID: 'processor' };
 const SCOPE = 'https://www.googleapis.com/auth/cloud-platform';
 const val = (k) => (process.env[k] || '').trim();
 const settings = () => ({
-  project: val('GOOGLE_CLOUD_PROJECT_ID'), location: val('GOOGLE_DOCUMENT_AI_LOCATION'), processor: val('GOOGLE_DOCUMENT_AI_PROCESSOR_ID'), keyFile: val('GOOGLE_APPLICATION_CREDENTIALS'),
+  project: val('GOOGLE_CLOUD_PROJECT_ID'), location: val('GOOGLE_DOCUMENT_AI_LOCATION'), processor: val('GOOGLE_DOCUMENT_AI_PROCESSOR_ID'), keyFile: val('GOOGLE_APPLICATION_CREDENTIALS'), keyJson: val('GOOGLE_CREDENTIALS_JSON'),
   version: val('GOOGLE_DOCUMENT_AI_PROCESSOR_VERSION'), quality: val('GOOGLE_DOCUMENT_AI_IMAGE_QUALITY') === 'true', endpointOverride: val('GOOGLE_DOCUMENT_AI_ENDPOINT'),
   timeoutMs: Number(val('OCR_TIMEOUT_MS')) || 120000,
 });
 const fail = (status, message, code) => new ApiError(status, message, undefined, code);
 
 /** The names (never the values) of the settings that are still missing. */
-export const missingSettings = () => Object.keys(REQUIRED).filter((k) => !val(k));
+export const missingSettings = () => {
+  const missing = Object.keys(REQUIRED).filter((k) => !val(k));
+  // The service-account key comes from either a file or the key's JSON itself (hosts without a persistent disk, e.g. Vercel).
+  if (!val('GOOGLE_APPLICATION_CREDENTIALS') && !val('GOOGLE_CREDENTIALS_JSON')) missing.push('GOOGLE_APPLICATION_CREDENTIALS');
+  return missing;
+};
 
 /* ------------------------------------------------------------------------------------------------ signing in */
 
@@ -39,9 +45,9 @@ let cached = null; // { key: client_email, token, expiresAt }
 async function accessToken(s, signal) {
   let key;
   try {
-    key = JSON.parse(await fs.readFile(s.keyFile, 'utf8'));
+    key = JSON.parse(s.keyJson || (await fs.readFile(s.keyFile, 'utf8')));
   } catch {
-    throw fail(502, 'The Google credentials file could not be read. Check GOOGLE_APPLICATION_CREDENTIALS.', 'OCR_CREDENTIALS');
+    throw fail(502, 'The Google credentials could not be read. Check GOOGLE_CREDENTIALS_JSON or GOOGLE_APPLICATION_CREDENTIALS.', 'OCR_CREDENTIALS');
   }
   if (!key.client_email || !key.private_key) throw fail(502, 'The Google credentials file is not a service-account key (it has no client_email / private_key).', 'OCR_CREDENTIALS');
   if (cached && cached.key === key.client_email && cached.expiresAt - 60000 > Date.now()) return cached.token;

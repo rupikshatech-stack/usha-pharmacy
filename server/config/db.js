@@ -21,7 +21,16 @@ const portInUse = (port) =>
  * production, runs a local single-node replica set (required for transactions) whose data lives in
  * server/.data. If a previous dev run left that database up (e.g. after an auto-restart), it is reused.
  */
-export async function connectDb() {
+let connecting = null;
+
+export function connectDb() {
+  if (mongoose.connection.readyState === 1) return Promise.resolve();
+  // One shared attempt: on a serverless host many requests can arrive before the first connection is ready.
+  connecting ||= connectOnce().finally(() => { connecting = null; });
+  return connecting;
+}
+
+async function connectOnce() {
   let uri = env.mongoUri;
 
   if (!uri) {
@@ -45,7 +54,7 @@ export async function connectDb() {
   }
 
   mongoose.set('strictQuery', true);
-  await mongoose.connect(uri, { serverSelectionTimeoutMS: 15000 });
+  await mongoose.connect(uri, { serverSelectionTimeoutMS: 15000, maxPoolSize: process.env.VERCEL ? 5 : 100 });
   console.log('[db] Connected');
 }
 

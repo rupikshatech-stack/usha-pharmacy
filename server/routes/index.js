@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { health } from '../controllers/health.controller.js';
 import { csrfProtect } from '../middleware/csrf.js';
 import auth from './auth.routes.js';
+import cron from './cron.routes.js';
 import medicines from './medicine.routes.js';
 import invoices from './invoice.routes.js';
 import salesReturns from './salesReturn.routes.js';
@@ -27,6 +28,7 @@ import { attributes, compounds } from './catalog.routes.js';
 const api = Router();
 
 api.get('/health', health);
+api.use('/cron', cron); // bearer-secret protected; see cron.routes.js
 api.use(csrfProtect); // every state-changing request that uses our cookies needs the CSRF header
 api.use('/auth', auth);
 api.use('/inventory', medicines); // the inventory API (GET/POST /, GET/PUT/DELETE /:id, batches, restore)

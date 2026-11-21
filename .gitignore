@@ -47,3 +47,5 @@ backup/
 backups/
 *.bson
 *.dump
+.vercel
+.env*
