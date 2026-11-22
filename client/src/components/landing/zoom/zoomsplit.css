@@ -1,0 +1,523 @@
+/* ======================================================================
+   The pinned "zoom and split" scene.
+   The outer .zs-scene is tall; .zs-stage sticks to the viewport inside it.
+   Sticky only works while no ancestor sets `overflow` — verified against
+   html, body, #root, .landing and main.
+   ====================================================================== */
+.zs-scene {
+  position: relative;
+  height: 470svh; /* extra scroll past the split, for the warp-card hand-off */
+  background: transparent;
+}
+.zs-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden; /* on the stage itself, never on an ancestor */
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+
+/* ---------- the photographed counter (a drawn stand-in) ---------- */
+.zs-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+}
+
+/* The photograph runs UNSCRIMMED - nothing dims it. The copy stays readable through
+   its own halo below rather than by washing out the picture behind it. */
+
+/* ---------- the scan HUD ---------- */
+.zs-hud-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(64vmin, 36rem);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  pointer-events: none;
+}
+.zs-hud {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  /* adds light to the picture instead of sitting on top of it */
+  mix-blend-mode: screen;
+  --draw: 1;
+}
+.zs-hud__arc,
+.zs-hud__bracket {
+  fill: none;
+  stroke: url(#zs-stroke);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: var(--draw);
+  filter: drop-shadow(0 0 4px rgba(23, 89, 67, 0.8));
+}
+.zs-hud__arc { stroke-width: 1.1; }
+.zs-hud__bracket { stroke-width: 2.4; }
+.zs-hud__mesh line {
+  stroke: rgba(23, 89, 67, 0.22);
+  stroke-width: 0.4;
+}
+.zs-hud__beam {
+  fill: rgba(216, 204, 255, 0.85);
+  filter: drop-shadow(0 0 6px rgba(23, 89, 67, 0.9));
+  animation: zs-beam 2.6s ease-in-out infinite;
+}
+@keyframes zs-beam {
+  0%, 100% { transform: translateY(34px); }
+  50% { transform: translateY(164px); }
+}
+.zs-hud__ring line {
+  stroke: rgba(23, 89, 67, 0.55);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  transform-origin: 100px 100px;
+}
+.zs-hud__ring {
+  transform-origin: 100px 100px;
+  animation: zs-spin 24s linear infinite;
+}
+@keyframes zs-spin {
+  to { transform: rotate(360deg); }
+}
+.zs-hud__label {
+  fill: rgba(216, 204, 255, 0.9);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+/* ---------- the wash: the counter photo gives way to the layers backdrop ----------
+   This used to be flat porcelain. It is now a photograph in its own right, at full
+   strength - nothing dims it. It still has to be fully opaque, because its job is to
+   hide the counter shot underneath as the scene hands over. */
+.zs-wash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background-color: var(--app); /* covers the frame before the image decodes */
+  background-image: url('/landing/layers-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  pointer-events: none;
+}
+
+/* ---------- the strip and its four layers ---------- */
+/* The layers live in their own band, pinned BELOW the copy and ABOVE the cards. Centring them in the whole stage
+   is what made the lede run straight through them on short windows - with explicit top/bottom insets the three
+   blocks can never overlap at any viewport height. */
+.zs-reveal {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: clamp(17rem, 37vh, 22rem);
+  bottom: clamp(8.5rem, 19vh, 11.5rem);
+  z-index: 4;
+  display: grid;
+  place-items: center;
+}
+.zs-stack {
+  /* the step between layers, and the rail they sit on, both open up on a wide screen
+     so the four layers use the width instead of huddling in the middle */
+  --lens-step: clamp(6rem, 20vw, 22rem);
+  --spread: 0;
+  position: relative;
+  width: min(94vw, 96rem);
+  height: 100%;
+}
+/* a soft pool of light under the exploded strip, so it sits on something */
+.zs-stack::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  width: 116%;
+  height: 34%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(23, 89, 67, 0.14), transparent 70%);
+  opacity: var(--spread);
+  pointer-events: none;
+}
+.zs-layers { position: absolute; inset: 0; }
+
+/* The warp cards take over this same band once the split has played out. */
+.zs-warp {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  /* wider than .zs-stack: that cap exists for the CSS layer panels, not for this */
+  width: min(98vw, 100rem);
+  height: 100%;
+  margin: 0;
+  max-height: none;
+  aspect-ratio: auto;
+  pointer-events: none;
+}
+.zs-warp::before { display: none; } /* no panel: it sits in the scene's own band */
+.zs-layer {
+  position: absolute;
+  left: 50%;
+  /* sits a little above centre so the name and caption below it stay inside the band */
+  top: calc(50% - 1.9rem);
+  width: clamp(7rem, 17vw, 12rem);
+  height: min(100% - 3.8rem, 14rem);
+  /* the slight fan rotation reads as an exploded view rather than four flat cards in a row */
+  transform:
+    translate(-50%, -50%)
+    translateX(calc(var(--i) * var(--lens-step) * var(--spread)))
+    rotate(calc(var(--i) * 1.15deg * var(--spread)));
+  will-change: transform;
+  transition: opacity 0.35s ease;
+}
+/* hovering a card lifts its layer and quietens the other three, so the link is unmissable */
+.zs-layers.has-active .zs-layer { opacity: 0.32; }
+.zs-layers.has-active .zs-layer.is-lit { opacity: 1; }
+.zs-layer .stand-in { transition: transform 0.45s var(--lp-spring), box-shadow 0.45s ease; }
+.zs-layer.is-lit .stand-in {
+  transform: translateY(-0.6rem);
+  box-shadow: 0 22px 44px rgba(16, 24, 40, 0.26), 0 0 30px rgba(23, 89, 67, 0.3);
+}
+
+/* name and what that layer actually carries */
+.zs-layer__meta {
+  position: absolute;
+  left: 50%;
+  bottom: -3.5rem;
+  width: max-content;
+  max-width: 13rem;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  text-align: center;
+  opacity: var(--spread);
+}
+.zs-layer__meta > * {
+  /* the captions sit directly on the backdrop photograph */
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.95), 0 0 16px rgba(255, 255, 255, 0.8);
+}
+.zs-layer__num {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--lp-lavender);
+  opacity: 0.75;
+}
+.zs-layer__name {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.zs-layer__carries {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.zs-layer.is-lit .zs-layer__carries { color: var(--lp-lavender); }
+
+/* The glowing dot a hovered card lights on its layer. */
+.zs-dot {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  height: 0.7rem;
+  width: 0.7rem;
+  margin-left: -0.35rem;
+  border-radius: 9999px;
+  background: var(--lp-lavender);
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.35s ease, transform 0.45s var(--lp-spring);
+  box-shadow: 0 0 0 4px rgba(23, 89, 67, 0.25), 0 0 22px 6px rgba(23, 89, 67, 0.8);
+}
+.zs-layer.is-lit .zs-dot { opacity: 1; transform: scale(1); }
+
+/* ---------- STAND-IN artwork (swap for real PNGs; see StripLayers.jsx) ---------- */
+.stand-in {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.8rem;
+  box-shadow: 0 14px 30px rgba(16, 24, 40, 0.22), 0 0 0 1px rgba(14, 20, 36, 0.09);
+}
+.stand-in--foil,
+.stand-in--blister,
+.stand-in--label { overflow: hidden; }
+
+/* 1. foil backing: brushed aluminium with the blisters pressed through from the front */
+.stand-in--foil {
+  background:
+    repeating-linear-gradient(103deg, rgba(255, 255, 255, 0.5) 0 1px, rgba(255, 255, 255, 0) 1px 4px),
+    linear-gradient(145deg, #eef1f7 0%, #98a3b6 38%, #f5f7fb 52%, #7b8698 100%);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 9% 13%;
+  padding: 11%;
+}
+.stand-in__emboss {
+  border-radius: 9999px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.55), rgba(120, 132, 152, 0.35));
+  box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.75), inset 0 -2px 3px rgba(40, 48, 66, 0.4);
+}
+
+/* 2. blister plastic: a clear sheet with domes and one specular streak */
+.stand-in--blister {
+  background: linear-gradient(145deg, rgba(176, 198, 232, 0.5), rgba(128, 158, 206, 0.38));
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 9% 13%;
+  padding: 11%;
+}
+.stand-in--blister::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(118deg, transparent 32%, rgba(255, 255, 255, 0.4) 46%, transparent 58%);
+  pointer-events: none;
+}
+.stand-in__dome {
+  border-radius: 9999px;
+  background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.16) 62%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* 3. tablets: loose objects, not a sheet - so no card edge, just the pills over a faint pool of light */
+.stand-in--tablet {
+  background: radial-gradient(ellipse at 50% 48%, rgba(23, 89, 67, 0.08), transparent 68%);
+  box-shadow: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 9% 13%;
+  padding: 11%;
+}
+.stand-in__pill {
+  position: relative;
+  border-radius: 9999px;
+  background: linear-gradient(158deg, #ffffff 0%, #eef1f8 46%, #c2cadf 100%);
+  border: 1px solid rgba(14, 20, 36, 0.12);
+  box-shadow:
+    inset 0 -2px 4px rgba(32, 40, 60, 0.22),
+    inset 0 2px 3px rgba(255, 255, 255, 0.95),
+    0 5px 12px rgba(16, 24, 40, 0.2);
+}
+/* the score line down the middle of a real tablet */
+.stand-in__pill::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 16%;
+  bottom: 16%;
+  width: 1px;
+  background: rgba(70, 80, 104, 0.3);
+}
+
+/* 4. printed label: an actual dispensing label, not a blank slab */
+.stand-in--label {
+  background: linear-gradient(170deg, #fdfdff, #e2e8f3);
+  display: grid;
+  align-content: center;
+  gap: 6%;
+  padding: 13% 11%;
+}
+.stand-in__brand {
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #5e6880;
+}
+.stand-in__code {
+  height: 26%;
+  background: repeating-linear-gradient(90deg, #0b1020 0 2px, transparent 2px 5px, #0b1020 5px 9px, transparent 9px 13px);
+}
+.stand-in__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #1b2238;
+  border-top: 1px solid rgba(27, 34, 56, 0.14);
+  padding-top: 3%;
+}
+.stand-in__row b { color: #717b96; font-weight: 800; }
+
+/* ---------- copy: two screens on one track ---------- */
+.zs-copy-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+.zs-copy {
+  height: 200%;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  will-change: transform;
+}
+.zs-copy__screen {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  text-align: center;
+  padding: clamp(3rem, 9vh, 6rem) 1rem 0;
+}
+.zs-eyebrow,
+.zs-title,
+.zs-lede {
+  /* a tight white halo: keeps dark copy readable over any part of the photograph,
+     including the dark monitor, without touching the image itself */
+  text-shadow:
+    0 0 10px rgba(255, 255, 255, 0.92),
+    0 0 22px rgba(255, 255, 255, 0.8),
+    0 1px 2px rgba(255, 255, 255, 0.95);
+}
+.zs-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+}
+.zs-title {
+  margin-top: 1rem;
+  max-width: 22ch;
+  font-size: clamp(2rem, 5.2vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.zs-lede {
+  margin-top: 1.1rem;
+  max-width: 46ch;
+  font-size: clamp(0.9375rem, 1.4vw, 1.0625rem);
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* On a short window the headline is what has to shrink; the strip keeps its size. */
+@media (max-height: 820px) {
+  .zs-copy__screen { padding-top: clamp(1.75rem, 5vh, 3rem); }
+  .zs-title { font-size: clamp(1.5rem, 3.6vw, 2.5rem); }
+  .zs-lede { margin-top: 0.75rem; font-size: 0.875rem; }
+}
+
+/* ---------- the four feature cards ---------- */
+.zs-cards {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1.5rem, 4vh, 3rem);
+  transform: translateX(-50%);
+  z-index: 6;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  width: min(94vw, 88rem);
+  opacity: 0;
+}
+.zs-card {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(14, 20, 36, 0.11);
+  background: #ffffff;
+  color: var(--muted);
+  outline: none;
+  transition: transform 0.5s var(--lp-spring), background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+.zs-card svg { color: var(--lp-lavender); }
+.zs-card__title { font-size: 13px; font-weight: 700; color: var(--ink); }
+.zs-card__body { font-size: 11.5px; line-height: 1.5; }
+.zs-card.is-active,
+.zs-card:focus-visible {
+  transform: translateY(-5px);
+  background: rgba(23, 89, 67, 0.07);
+  border-color: rgba(23, 89, 67, 0.45);
+  color: var(--ink);
+  box-shadow: 0 14px 34px rgba(16, 24, 40, 0.14), 0 0 22px rgba(23, 89, 67, 0.16);
+}
+.zs-card:focus-visible { outline: 2px solid var(--lp-lavender); outline-offset: 2px; }
+
+.zs-note {
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.95);
+  position: absolute;
+  left: 50%;
+  bottom: 0.5rem;
+  transform: translateX(-50%);
+  z-index: 6;
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* ---------- narrow screens ---------- */
+@media (max-width: 767px) {
+  .zs-scene { height: 420svh; }
+  .zs-hud-wrap { width: min(72vmin, 17rem); } /* smaller HUD radius */
+  .zs-stack {
+    /* must stay larger than the layer width below, or the fan still overlaps */
+    --lens-step: clamp(4.2rem, 23.5vw, 6rem);
+  }
+  .zs-layer { width: clamp(3.5rem, 18vw, 5rem); }
+  .zs-layer__meta { max-width: 5.5rem; bottom: -2.8rem; }
+  .zs-layer__carries { display: none; } /* no room for it beside three neighbours */ /* would collide at this width */
+  .zs-cards {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 74%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .zs-cards::-webkit-scrollbar { display: none; }
+  .zs-cards > li { scroll-snap-align: center; }
+  .zs-note { display: none; }
+}
+
+/* ---------- reduced motion: a calm, static equivalent ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .zs-hud__beam,
+  .zs-hud__ring { animation: none; }
+  .zs-hud__beam { transform: translateY(100px); }
+  .zs-card { transition: none; }
+  .zs-dot { transition: none; }
+  .zs-layer { will-change: auto; }
+}
+
+/* ---------- short windows (laptops, split screens) ---------- */
+/* Without this the title and lede grow tall enough to reach into the layer band. */
+@media (max-height: 820px) {
+  /* must clear the 64px sticky nav, or the eyebrow hides behind it */
+  .zs-copy__screen { padding-top: clamp(4.5rem, 10vh, 5.5rem); }
+  .zs-title { margin-top: 0.6rem; font-size: clamp(1.6rem, 3.6vw, 2.5rem); }
+  .zs-lede { margin-top: 0.7rem; max-width: 40ch; font-size: 0.9375rem; }
+  .zs-reveal { top: clamp(16rem, 42vh, 19rem); bottom: clamp(9rem, 23vh, 11rem); }
+  /* the caption is hidden here, so the layers need less room reserved beneath them */
+  .zs-layer { height: min(100% - 2.8rem, 13rem); top: calc(50% - 1.4rem); }
+  .zs-layer__meta { bottom: -2.6rem; }
+  .zs-layer__carries { display: none; }
+}

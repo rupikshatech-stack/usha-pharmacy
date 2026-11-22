@@ -1,0 +1,511 @@
+/*
+ * Landing-page-only theme. Everything is scoped under .landing, so the authenticated application keeps using the
+ * tokens in index.css untouched. The page is always dark (deep navy, not black); the visitor's app theme is ignored.
+ *
+ * ACCENT: change --lp-accent / --lp-on-accent below to re-colour every call to action.
+ *   lavender (default) #b9a6ff on #120a2e
+ *   mint               #3ddc97 on #04231a
+ *   amber              #ffb84d on #2a1800
+ */
+.landing {
+  /* Botanical Clinical Porcelain. The accent is Deep Apothecary emerald: it carries
+     CTAs and active tabs, and holds 7.4:1 on the porcelain base. */
+  --lp-accent: #175943;
+  --lp-on-accent: #f7f6f2;
+  --lp-accent-hover: #114534;
+  --lp-lavender: #175943; /* historical name, now the emerald accent */
+  --lp-tint: #eaf3ef;     /* soft emerald highlight */
+  --lp-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* The page itself is painted by BackdropLayers; --app is the porcelain these
+     surfaces sit on, so cards stay opaque over the WebGL canvas. */
+  --app: #f7f6f2;
+  --card: #ffffff;
+  --subtle: #efece4;
+  --ink: #11221d;
+  --muted: #4a5c56; /* 7.1:1 on --app */
+  --line: #ddddd0;
+  --sage: #eaf3ef;
+  --sage-ink: #14543f;
+  --side: #163129;
+  --primary: var(--lp-accent);
+  --primary-hover: var(--lp-accent-hover);
+  --on-primary: var(--lp-on-accent);
+  --accent: var(--lp-accent);
+  --on-accent: var(--lp-on-accent);
+  --amber: #8a5a12;
+  --success: #0f7250;
+  --warning: #85600f;
+  --info: #1d6098;
+  --purple: #4e4a86;
+  --orange: #a85a1d;
+  --danger: #a93a30;
+  --on-danger: #f7f6f2;
+  --success-soft: color-mix(in srgb, var(--success) 12%, transparent);
+  --warning-soft: color-mix(in srgb, var(--warning) 14%, transparent);
+  --info-soft: color-mix(in srgb, var(--info) 12%, transparent);
+  --purple-soft: color-mix(in srgb, var(--purple) 12%, transparent);
+  --orange-soft: color-mix(in srgb, var(--orange) 13%, transparent);
+  --danger-soft: color-mix(in srgb, var(--danger) 12%, transparent);
+  --shadow: 0 1px 2px rgba(17, 34, 29, 0.06);
+  --shadow-pop: 0 24px 60px rgba(17, 34, 29, 0.14);
+  color-scheme: light;
+  position: relative;
+  /* transparent on purpose: the fixed gradient + 3D canvas live behind this */
+  background: transparent;
+  color: var(--ink);
+}
+
+
+
+/* ---------- Background motion: soft blobs and a glass panel (transform-only, so it stays on the GPU) ---------- */
+.lp-blob {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  will-change: transform;
+  animation: lp-drift 38s linear infinite;
+}
+.lp-blob--a {
+  background: radial-gradient(circle at 32% 32%, color-mix(in srgb, var(--lp-accent) 16%, transparent), transparent 62%);
+}
+.lp-blob--b {
+  background: radial-gradient(circle at 60% 40%, rgba(60, 120, 98, 0.15), transparent 64%);
+  animation-duration: 52s;
+  animation-direction: reverse;
+}
+@keyframes lp-drift {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  50% { transform: translate3d(5%, 7%, 0) rotate(180deg) scale(1.1); }
+  100% { transform: translate3d(0, 0, 0) rotate(360deg) scale(1); }
+}
+.lp-glass {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 3rem;
+  border: 1px solid rgba(23, 89, 67, 0.16);
+  background: linear-gradient(135deg, rgba(23, 89, 67, 0.08), rgba(23, 89, 67, 0.01));
+  will-change: transform;
+  animation: lp-float 24s ease-in-out infinite;
+}
+@keyframes lp-float {
+  0%, 100% { transform: perspective(900px) rotateX(14deg) rotateY(-18deg) rotateZ(-6deg) translate3d(0, 0, 0); }
+  50% { transform: perspective(900px) rotateX(-8deg) rotateY(14deg) rotateZ(8deg) translate3d(2%, 4%, 0); }
+}
+
+/* Phones: one smaller, static blob and no glass panel. Large animated layers are where mobile performance dies. */
+@media (max-width: 767px) {
+  .lp-blob { animation: none; }
+  .lp-blob--b, .lp-glass { display: none; }
+}
+
+/* ---------- Hover: a springy lift with a hint of tilt ---------- */
+.lp-lift {
+  transition: transform 0.55s var(--lp-spring), box-shadow 0.35s ease, border-color 0.35s ease, background-color 0.35s ease;
+  will-change: transform;
+}
+@media (hover: hover) {
+  .lp-lift:hover {
+    transform: translate3d(0, -6px, 0) scale(1.02) rotate(-0.5deg);
+    border-color: rgba(23, 89, 67, 0.34);
+    box-shadow: 0 20px 44px rgba(16, 24, 40, 0.14);
+  }
+  .lp-btn:hover { transform: translate3d(0, -2px, 0) scale(1.05); }
+}
+.lp-btn { transition: transform 0.45s var(--lp-spring), background-color 0.2s ease, box-shadow 0.3s ease; }
+.lp-btn:active { transform: scale(0.98); }
+.lp-cta-glow { box-shadow: 0 8px 30px color-mix(in srgb, var(--lp-accent) 35%, transparent); }
+
+/* The hero's product preview rests at a slight 3D angle and settles flat on hover. The preview itself is untouched. */
+.lp-tilt {
+  transform: perspective(1800px) rotateX(7deg);
+  transform-origin: 50% 100%;
+  transition: transform 0.8s var(--lp-spring);
+}
+@media (hover: hover) {
+  .lp-tilt:hover { transform: perspective(1800px) rotateX(0deg); }
+}
+
+/* Product screens (the ERP window) get a crisp edge so they read clearly against the dark page. */
+.landing .showcase-frame {
+  --app: #f7f8f4; /* the real app background, so the screens look like the app */
+  box-shadow: 0 0 0 1px rgba(14, 20, 36, 0.1), 0 30px 70px rgba(16, 24, 40, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-blob, .lp-glass { animation: none; }
+  .lp-lift, .lp-btn, .lp-tilt { transition: none; }
+  .lp-lift:hover, .lp-btn:hover { transform: none; }
+  .lp-tilt, .lp-tilt:hover { transform: none; }
+}
+
+
+/* ---------- Hero: particle object, veil and gradient text ---------- */
+/* Fallback when WebGL is unavailable or the device is too slow for the point cloud. */
+.lp-glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: min(34rem, 80vw);
+  width: min(34rem, 80vw);
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(23, 89, 67, 0.3), rgba(23, 89, 67, 0.07) 42%, transparent 68%);
+  pointer-events: none;
+}
+
+/* The cloud sits behind the words; this keeps the middle of the hero dark enough to read against. */
+.lp-hero-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* porcelain, not ink: this used to be a dark veil for the old dark page. It now lifts the
+     headline off both the particle cloud and the 3D capsule behind it. */
+  background: radial-gradient(ellipse 62% 46% at 50% 46%, rgba(247, 246, 242, 0.93), rgba(247, 246, 242, 0.62) 58%, rgba(247, 246, 242, 0) 82%);
+}
+
+.lp-gradient-text {
+  background: linear-gradient(100deg, #2a8566 0%, #175943 45%, #0f3d2e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- The monitor frame around the billing demo ---------- */
+.lp-monitor__bezel {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(14, 20, 36, 0.13);
+  background: linear-gradient(180deg, #f3f5fa, #e7ebf3);
+  box-shadow: 0 24px 60px rgba(16, 24, 40, 0.16), 0 0 70px rgba(23, 89, 67, 0.08);
+  overflow: hidden;
+}
+.lp-monitor__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(14, 20, 36, 0.09);
+  background: rgba(14, 20, 36, 0.03);
+}
+.lp-monitor__stand {
+  margin: 0 auto;
+  height: 0.9rem;
+  width: 7rem;
+  border-radius: 0 0 0.6rem 0.6rem;
+  background: linear-gradient(180deg, #e9edf4, #dde3ed);
+  border: 1px solid rgba(14, 20, 36, 0.1);
+  border-top: 0;
+}
+
+/* ======================================================================
+   The tilted laptop stage (#motion)
+   A real CSS 3D scene: a perspective container, a lid rotated back on X and
+   turned slightly on Y, floating panels on their own z-planes, and a caption.
+   ====================================================================== */
+.lp-stage {
+  position: relative;
+  overflow: hidden;
+}
+.lp-stage__glow {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  height: min(52rem, 120vw);
+  width: min(72rem, 150vw);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(23, 89, 67, 0.2), rgba(23, 89, 67, 0.07) 38%, transparent 70%);
+}
+
+/* The 3D camera. A long perspective keeps the tilt believable without smearing the text. */
+.lp-stage__scene {
+  position: relative;
+  perspective: 1700px;
+  perspective-origin: 50% 42%;
+}
+
+.lp-laptop {
+  position: relative;
+  margin: 0 auto;
+  max-width: 54rem;
+  transform-style: preserve-3d;
+  /* 12deg back, 7deg round: enough to read as a photographed object, mild enough to keep UI text sharp. */
+  transform: rotateX(12deg) rotateY(-7deg);
+  transition: transform 0.9s var(--lp-spring);
+}
+@media (hover: hover) {
+  .lp-stage__scene:hover .lp-laptop { transform: rotateX(6deg) rotateY(-3deg); }
+}
+
+.lp-laptop__lid {
+  position: relative;
+  border-radius: 0.9rem 0.9rem 0.3rem 0.3rem;
+  padding: 0.55rem 0.55rem 0.7rem;
+  background: linear-gradient(170deg, #27413a, #162621 55%, #0e1b17);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 2px 0 rgba(0, 0, 0, 0.5),
+    0 36px 70px rgba(16, 24, 40, 0.3),
+    0 0 120px rgba(23, 89, 67, 0.16);
+}
+.lp-laptop__screen {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: var(--app);
+  box-shadow: inset 0 0 0 1px rgba(14, 20, 36, 0.08);
+}
+/* A fixed 16:9.5 screen, so the scenes never change the page's height as they swap. */
+.lp-laptop__view {
+  position: relative;
+  aspect-ratio: 16 / 9.5;
+}
+.lp-laptop__chrome {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.7rem;
+  border-bottom: 1px solid rgba(14, 20, 36, 0.08);
+  background: rgba(14, 20, 36, 0.03);
+}
+
+/* Each scene fills the screen; only the current one is painted. */
+.lp-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+/* Each view is written to fill its frame, so give it the whole screen. */
+.lp-scene > * {
+  height: 100%;
+}
+.lp-scene {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(1.015);
+  transition: opacity 1.4s ease, transform 1.4s ease, visibility 0s linear 1.4s;
+}
+.lp-scene.is-on {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 1.4s ease, transform 1.4s ease, visibility 0s;
+}
+
+/* The wedge below the lid, standing in for the keyboard deck. */
+.lp-laptop__base {
+  position: relative;
+  height: 0.85rem;
+  margin: 0 auto;
+  width: 104%;
+  transform: translateX(-2%) rotateX(72deg);
+  transform-origin: top center;
+  border-radius: 0 0 0.7rem 0.7rem;
+  background: linear-gradient(180deg, #33514a, #1b2f29 70%, #11201b);
+  box-shadow: 0 20px 34px rgba(16, 24, 40, 0.26);
+}
+.lp-laptop__notch {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  height: 0.22rem;
+  width: 7rem;
+  transform: translateX(-50%);
+  border-radius: 0 0 0.3rem 0.3rem;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- Floating glow panels ---------- */
+.lp-panels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform-style: preserve-3d;
+}
+.lp-panel {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  padding: 0.5rem 0.8rem;
+  border-radius: 0.7rem;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+  border: 1px solid rgba(23, 89, 67, 0.3);
+  background: rgba(255, 255, 255, 0.88);
+  /* no backdrop-filter: it stalls software WebGL behind it */
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.16), 0 0 24px rgba(23, 89, 67, 0.16);
+  animation: lp-panel-float 12s ease-in-out infinite;
+}
+.lp-panel svg { color: var(--lp-lavender); }
+.lp-panel--a { left: -1.5rem; top: 16%; animation-delay: -0.6s; }
+.lp-panel--b { right: -1.5rem; top: 40%; animation-delay: -2.9s; }
+.lp-panel--c { left: 4%; bottom: 4%; animation-delay: -4.7s; }
+@keyframes lp-panel-float {
+  0%, 100% { transform: translate3d(0, 0, 60px); }
+  50% { transform: translate3d(0, -9px, 60px); }
+}
+
+/* ---------- Caption ---------- */
+.lp-caption {
+  margin-top: 2.75rem;
+  min-height: 1.75rem;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.lp-caption__text {
+  display: inline-block;
+  animation: lp-caption-in 0.9s ease both;
+}
+@keyframes lp-caption-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- Narrow screens: flatten the tilt and bring the panels into the flow ---------- */
+@media (max-width: 767px) {
+  .lp-stage__scene { perspective: none; }
+  .lp-laptop { transform: none; }
+  /* A wide screen at phone width is only a couple of hundred pixels tall, which clips the stacked views. */
+  .lp-laptop__view { aspect-ratio: 3 / 4; }
+  .lp-laptop__base { width: 100%; transform: none; height: 0.5rem; }
+  .lp-laptop__notch { display: none; }
+  .lp-panels {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+  }
+  .lp-panel {
+    position: static;
+    animation: none;
+    transform: none;
+    backdrop-filter: none; /* a blurred layer per card is a needless cost on a phone */
+  }
+  .lp-caption { margin-top: 1.5rem; font-size: 0.9375rem; }
+  /* Scoped to the simulated screens only: at phone width the densest tables would otherwise clip their
+     right-hand status pills against the bezel. */
+  .lp-scene table { font-size: 10px; }
+  .lp-scene th,
+  .lp-scene td { padding-left: 0.35rem; padding-right: 0.35rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-laptop,
+  .lp-stage__scene:hover .lp-laptop { transition: none; }
+  .lp-panel { animation: none; transform: translate3d(0, 0, 60px); }
+  .lp-caption__text { animation: none; }
+  .lp-scene { transition: none; }
+}
+
+/* ======================================================================
+   Atmospheric backdrop + the 3D control dock
+   The backdrop is fixed behind everything; .landing itself is transparent so
+   these show through. No backdrop-filter anywhere above the live WebGL canvas.
+   ====================================================================== */
+.lp-backdrop__base {
+  background: linear-gradient(180deg, #f7f6f2 0%, #efece4 55%, #e7ece8 100%);
+}
+.lp-backdrop__forest {
+  background: linear-gradient(180deg, #163129 0%, #10231d 60%, #0a1814 100%);
+  will-change: opacity;
+}
+
+/* The final CTA and the footer both sit on the forest wash, so their copy inverts.
+   The footer is a SIBLING of #end, not a child, so this is keyed off a shared class. */
+.lp-forest-zone { color: #f7f6f2; border-color: rgba(255, 255, 255, 0.15) !important; }
+.lp-forest-zone h1, .lp-forest-zone h2, .lp-forest-zone h3, .lp-forest-zone span { color: #f7f6f2; }
+.lp-forest-zone p, .lp-forest-zone li, .lp-forest-zone a { color: #cfe0da; }
+.lp-forest-zone a:hover { color: #ffffff; }
+.lp-forest-zone [class*="border-ink"], .lp-forest-zone [class*="border-t"] {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+.lp-forest-zone .lp-lift {
+  background: rgba(18, 43, 36, 0.92);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.lp-forest-zone svg { color: #9bd2be; }
+/* The footer overlaps the capsule's pale lower sleeve, and light copy over that white
+   is unreadable. The brief's own card surface gives it a guaranteed backdrop. */
+footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
+/* the CTA button keeps its emerald fill but needs a lighter edge on forest */
+.lp-forest-zone .lp-btn { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18); }
+
+.lp-dock {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 40px rgba(17, 34, 29, 0.18);
+}
+.lp-dock__toggle {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  box-shadow: 0 8px 24px rgba(17, 34, 29, 0.14);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.lp-dock__toggle:hover { background: var(--lp-tint); }
+.lp-dock__toggle svg { color: var(--lp-accent); }
+.lp-dock__chip {
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--muted);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.lp-dock__chip:hover { background: var(--lp-tint); color: var(--ink); }
+.lp-dock__chip.is-on {
+  background: var(--lp-accent);
+  border-color: var(--lp-accent);
+  color: var(--lp-on-accent);
+}
+.lp-dock__toggle:focus-visible, .lp-dock__chip:focus-visible {
+  outline: 2px solid var(--lp-accent);
+  outline-offset: 2px;
+}
+@media (max-width: 767px) {
+  .lp-dock { max-width: 92vw; }
+}
+
+/* ======================================================================
+   Modules section: the flat-lay photograph as a background, UNSCRIMMED.
+   The photo renders at full strength. Nothing dims it; the copy is kept legible
+   by the card surfaces and by the header running full ink instead of muted grey.
+   ====================================================================== */
+#modules {
+  position: relative;
+  isolation: isolate; /* keeps the negative z-indexes below from escaping the section */
+}
+#modules::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-image: url('/landing/modules-bg.jpg');
+  background-size: cover;
+  background-position: center;
+}
+/* No scrim: the photograph runs at full strength. Legibility is handled where it is
+   actually needed instead — the cards carry their own surface, and the section header
+   drops its muted grey for full ink, which clears 4.5:1 on every part of this image. */
+#modules > div > div p[data-rise] { color: var(--ink); }
+/* Translucent cards worked over flat porcelain; over a photograph they need a real
+   surface or the travertine texture reads straight through the body copy. */
+#modules .lp-lift {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(17, 34, 29, 0.12);
+  box-shadow: 0 14px 36px rgba(17, 34, 29, 0.16);
+}
+@media (hover: hover) {
+  #modules .lp-lift:hover {
+    background: #ffffff;
+    box-shadow: 0 22px 50px rgba(17, 34, 29, 0.22);
+  }
+}
+/* the tag pills sit on the card, so they only need a hairline */
+#modules .lp-lift ul li { background: rgba(255, 255, 255, 0.6); }

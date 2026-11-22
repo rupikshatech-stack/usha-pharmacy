@@ -49,3 +49,9 @@ backups/
 *.dump
 .vercel
 .env*
+
+# Installed agent skills. These are reproducible from skills-lock.json (which IS
+# committed), the same way node_modules is from package-lock.json. .agents alone is
+# 38 MB / 1631 files, so committing them would bloat the history permanently.
+.agents/
+.claude/skills/

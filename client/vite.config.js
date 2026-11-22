@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     plugins: [react(), tailwindcss()],
+    // Without this, every dynamic import is inlined into one bundle, so three.js (only ever used by the public
+    // landing page) would be downloaded by the application too. Splitting keeps it in its own lazy chunk.
+    build: { rolldownOptions: { output: { codeSplitting: true } } },
     server: {
       port: 5173,
       strictPort: true, // the API only allows the configured origin, so never drift to another port

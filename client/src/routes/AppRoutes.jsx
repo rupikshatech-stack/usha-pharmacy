@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthOnlyRoute, GuestRoute, ProtectedRoute } from './ProtectedRoute';
 import { hiddenPlaceholders, pageTitle, placeholderRoutes } from '../components/layout/nav';
+import Landing from '../pages/landing/Landing';
 import Login from '../pages/auth/Login';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 import ChangePassword from '../pages/auth/ChangePassword';
@@ -110,7 +111,8 @@ export default function AppRoutes() {
         ))}
       </Route>
 
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* The public landing page; a signed-in visitor is sent on to /dashboard by the page itself. */}
+      <Route path="/" element={<Landing />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

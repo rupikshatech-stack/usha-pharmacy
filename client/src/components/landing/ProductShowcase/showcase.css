@@ -1,0 +1,34 @@
+/* Product showcase. Everything is token-based, so it follows light and dark mode. */
+
+/* The ERP window has a fixed design size (set inline) and is scaled to fit its slot. */
+.showcase-frame {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  box-shadow: 0 2px 4px rgba(23, 40, 33, 0.04), var(--shadow-pop);
+  overflow: hidden;
+  color: var(--ink);
+}
+
+/* The scene stack: every scene fills the same box and the timeline cross-fades between them. */
+.showcase-scenes {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.showcase-scene {
+  position: absolute;
+  inset: 0;
+  will-change: transform, opacity;
+}
+
+/* Copy stack: all blocks share one grid cell, so the column is as tall as the tallest and never shifts. */
+.showcase-copy-stack { display: grid; }
+.showcase-copy-stack > * { grid-area: 1 / 1; }
+.showcase-copy { will-change: transform, opacity; }
+
+.showcase-fill { transform-origin: left center; }
