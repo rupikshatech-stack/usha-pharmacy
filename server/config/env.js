@@ -34,6 +34,19 @@ const schema = z
     // Read by the storage layer straight from the environment; they are validated here so a missing one fails at boot.
     BLOB_READ_WRITE_TOKEN: z.preprocess(emptyToUndefined, z.string().optional()),
     BLOB_STORE_ID: z.preprocess(emptyToUndefined, z.string().optional()),
+    // The public address of the web app, used for the links inside emails (the server has no other way to know it).
+    // No default: the code falls back to http://localhost:5173 when it is missing, which put dead links in real mail.
+    APP_URL: z.preprocess(emptyToUndefined, z.url('must be a full address, such as https://pharmacy.example.com').optional()),
+
+    // --- Outgoing mail (optional: with no SMTP_HOST the digest is only written to the log) ---
+    // Read by services/email straight from the environment; validated here so a half-configured setup fails at boot
+    // and names the variable, rather than failing at 01:00 when the first digest tries to go out.
+    SMTP_HOST: z.preprocess(emptyToUndefined, z.string().trim().optional()),
+    SMTP_PORT: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(65535).optional()),
+    SMTP_SECURE: z.preprocess(emptyToUndefined, z.enum(['true', 'false']).optional()),
+    SMTP_USER: z.preprocess(emptyToUndefined, z.string().optional()),
+    SMTP_PASS: z.preprocess(emptyToUndefined, z.string().optional()),
+    MAIL_FROM: z.preprocess(emptyToUndefined, z.string().trim().optional()),
 
     // --- Authentication / sessions ---
     ACCESS_TOKEN_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
@@ -66,6 +79,13 @@ const schema = z
       if (!v.BLOB_STORE_ID && !v.BLOB_READ_WRITE_TOKEN) {
         ctx.addIssue({ code: 'custom', path: ['BLOB_READ_WRITE_TOKEN'], message: 'or BLOB_STORE_ID is required in production on Vercel (connect a private Blob store)' });
       }
+      if (!v.APP_URL) ctx.addIssue({ code: 'custom', path: ['APP_URL'], message: 'is required in production on Vercel (links in emails would point at localhost)' });
+      else if (!v.APP_URL.startsWith('https://')) ctx.addIssue({ code: 'custom', path: ['APP_URL'], message: 'must be an https:// address in production' });
+    }
+    // With a mail server configured, the sender must be a real address: the code otherwise sends from
+    // no-reply@localhost, which providers reject, and the failure would only show when a digest is due.
+    if (v.NODE_ENV === 'production' && v.SMTP_HOST && !v.MAIL_FROM) {
+      ctx.addIssue({ code: 'custom', path: ['MAIL_FROM'], message: 'is required in production when SMTP_HOST is set' });
     }
     if (v.COOKIE_SAME_SITE === 'none' && v.COOKIE_SECURE === false) {
       ctx.addIssue({ code: 'custom', path: ['COOKIE_SECURE'], message: 'must not be false when COOKIE_SAME_SITE=none' });
