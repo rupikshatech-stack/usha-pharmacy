@@ -93,3 +93,19 @@ export function bucketLabel(key, bucket) {
   if (bucket === 'week') return `${d} ${month}`;
   return `${d} ${month}`;
 }
+
+/**
+ * Where each slice of the Transaction breakdown leads, and how to say so. Sales and purchases have reports of their own;
+ * the two kinds of return open the Daily Transaction Report, already filtered to them. The link AND its accessible name are
+ * built from this one table, so what a screen reader announces cannot drift from where the link goes.
+ */
+export const MIX_DESTINATIONS = {
+  sales: { path: '/analytics/sales', opens: 'the Sales Report' },
+  purchases: { path: '/analytics/purchases', opens: 'the Purchase Report' },
+  salesReturns: { path: '/analytics/transactions', type: 'salesReturn', opens: 'the transaction report' },
+  purchaseReturns: { path: '/analytics/transactions', type: 'purchaseReturn', opens: 'the transaction report' },
+};
+
+/** The accessible name of one breakdown row, for example "Sales: 12 transactions worth ₹4,000. Open the Sales Report." */
+export const mixAccessibleName = (mix, amountText) =>
+  `${mix.label}: ${mix.count} transactions worth ${amountText}. Open ${(MIX_DESTINATIONS[mix.key] || { opens: 'the transaction report' }).opens}.`;

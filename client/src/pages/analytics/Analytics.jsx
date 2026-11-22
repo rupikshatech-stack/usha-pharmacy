@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeftRight, ArrowUpRight, Banknote, CreditCard, FileText, Package, PiggyBank, Receipt, RefreshCw, RotateCcw, TrendingUp, Undo2 } from 'lucide-react';
 import { useFetch } from '../../hooks/useFetch';
 import { inr } from '../../utils/format';
+import { MIX_DESTINATIONS, mixAccessibleName } from '../../utils/analytics';
 import { Button, Card, EmptyState, ErrorState, Skeleton, cx } from '../../components/common/ui';
 import KpiCard from '../../components/analytics/KpiCard';
 import RevenueChart from '../../components/analytics/RevenueChart';
@@ -20,8 +21,6 @@ const ICONS = {
   salesReturns: Undo2,
 };
 
-/** Which kind of document each slice of the breakdown is, so it can open the report already filtered to it. */
-const MIX_TYPE = { sales: 'sale', purchases: 'purchase', salesReturns: 'salesReturn', purchaseReturns: 'purchaseReturn' };
 const MIX_BAR = { sales: 'bg-primary', purchases: 'bg-info', salesReturns: 'bg-warning', purchaseReturns: 'bg-orange' };
 
 /**
@@ -59,8 +58,10 @@ export default function Analytics() {
    * Where a slice of the breakdown leads: sales and purchases each have a report of their own, which says far more
    * about them than a list of documents can; the two kinds of return lead to that list, filtered to them.
    */
-  const mixLink = (key) =>
-    key === 'sales' ? `/analytics/sales?${periodParams()}` : key === 'purchases' ? `/analytics/purchases?${periodParams()}` : reportLink(MIX_TYPE[key]);
+  const mixLink = (key) => {
+    const dest = MIX_DESTINATIONS[key] || MIX_DESTINATIONS.salesReturns;
+    return `${dest.path}?${periodParams(dest.type ? { type: dest.type } : {})}`;
+  };
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-4 p-4 sm:p-6">
@@ -135,7 +136,7 @@ export default function Analytics() {
                     <Link
                       to={mixLink(m.key)}
                       className="group block rounded-xl px-2 py-2 transition-colors hover:bg-subtle"
-                      aria-label={`${m.label}: ${m.count} transactions worth ${inr(m.amount)}. Open the transaction report.`}
+                      aria-label={mixAccessibleName(m, inr(m.amount))}
                     >
                       <div className="flex items-baseline justify-between gap-3 text-sm">
                         <span className="flex items-center gap-1.5 font-semibold">

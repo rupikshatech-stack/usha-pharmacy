@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { bucketLabel, compactMoney, dayString, quickRange, trendOf } from './analytics.js';
+import { MIX_DESTINATIONS, bucketLabel, compactMoney, dayString, mixAccessibleName, quickRange, trendOf } from './analytics.js';
 
 // A fixed instant so the ranges can be checked exactly: Monday 9 November 2026, mid-morning.
 const NOW = new Date(2026, 10, 9, 10, 30);
@@ -77,5 +77,28 @@ describe('chart labels', () => {
     assert.equal(bucketLabel('2026-11-09', 'day'), '09 Nov');
     assert.equal(bucketLabel('2026-11-09', 'week'), '09 Nov');
     assert.equal(bucketLabel('2026-11', 'month'), 'Nov 26');
+  });
+});
+
+describe('the Transaction breakdown: where a row leads, and what it is called', () => {
+  const row = (key, label) => ({ key, label, count: 12 });
+
+  it('names the report each row really opens', () => {
+    assert.equal(mixAccessibleName(row('sales', 'Sales'), '₹4,000'), 'Sales: 12 transactions worth ₹4,000. Open the Sales Report.');
+    assert.equal(mixAccessibleName(row('purchases', 'Purchases'), '₹2,500'), 'Purchases: 12 transactions worth ₹2,500. Open the Purchase Report.');
+    assert.match(mixAccessibleName(row('salesReturns', 'Sales returns'), '₹100'), /Open the transaction report\.$/);
+    assert.match(mixAccessibleName(row('purchaseReturns', 'Purchase returns'), '₹100'), /Open the transaction report\.$/);
+  });
+
+  it('only the rows that really open the transaction report say so, and they carry the filter', () => {
+    for (const [key, dest] of Object.entries(MIX_DESTINATIONS)) {
+      const opensTransactions = dest.path === '/analytics/transactions';
+      assert.equal(/transaction report/.test(dest.opens), opensTransactions, `${key}: the name and the address disagree`);
+      assert.equal(Boolean(dest.type), opensTransactions, `${key}: only the transaction report takes a type filter`);
+    }
+  });
+
+  it('falls back to the transaction report for a kind it has not heard of, as the link does', () => {
+    assert.match(mixAccessibleName(row('mystery', 'Mystery'), '₹1'), /Open the transaction report\.$/);
   });
 });
