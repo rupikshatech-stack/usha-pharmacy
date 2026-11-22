@@ -121,7 +121,9 @@ export default function PharmacyScene3D({ preset = 'emerald', manualExplode = fa
     const settle = setTimeout(reflow, 1200);
 
     // ---- pose state -------------------------------------------------------
-    const cur = { x: 0.48, y: 0.06, s: 0.58, rx: 0.25, ry: 0.4, rz: -0.42, explode: 0 };
+    // Start where the page is, not at the desktop hero pose: on a stacked layout that pose is a slab across the
+    // headline, and the capsule would visibly shrink into place on every load.
+    const cur = { x: 0.48, y: 0.06, s: 0.58, rx: 0.25, ry: 0.4, rz: -0.42, explode: 0, ...poseAt(poses, window.scrollY) };
     let elapsed = 0;
     let lastScroll = window.scrollY;
     let scrollVel = 0;

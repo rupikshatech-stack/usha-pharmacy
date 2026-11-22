@@ -31,7 +31,33 @@ const MOBILE = {
   end: { x: 0.0, y: 0.26, s: 0.3 },
 };
 
-export const isMobile = () => window.innerWidth <= 820;
+/**
+ * When the page stacks: a narrow screen, or any portrait one. Width alone was not enough: the capsule is sized by the
+ * viewport HEIGHT, so on a tablet held upright (821 x 1180) the desktop pose made it a 680px slab across the copy.
+ * landing.css repeats this exact query for the hero's stage (.lp-hero-body); change both together.
+ */
+export const STACKED_QUERY = '(max-width: 820px), (max-aspect-ratio: 1/1)';
+export const isMobile = () => window.matchMedia(STACKED_QUERY).matches;
+
+const HEADER = 64; // LandingNav's height, the sticky bar the stage starts under
+
+/**
+ * Where the capsule goes in the stacked hero: the empty stage the hero reserves above its eyebrow
+ * ([data-hero-stage], see .lp-hero-body). Derived from that element so the capsule fits the stage at every phone
+ * height, instead of sitting at a fixed spot that happens to overlap the words.
+ */
+function heroStage() {
+  const el = document.querySelector('[data-hero-stage]');
+  if (!el) return null;
+  const pad = parseFloat(getComputedStyle(el).paddingTop) || 0;
+  if (pad < 96) return null;
+  const top = Math.max(HEADER, el.getBoundingClientRect().top + window.scrollY);
+  const centre = top + pad / 2;
+  const H = window.innerHeight;
+  // A tilted capsule is about 1.1x its height tall, and it bobs by +-2% of the viewport height. At 64% of the stage
+  // that still leaves clear air above (the sticky header) and below (the eyebrow) at every phone height.
+  return { x: 0, y: 1 - (2 * centre) / H, s: Math.min(0.3, (pad * 0.64) / H) };
+}
 
 /** The pose list for the current breakpoint, with every `at` resolved to a scrollY. */
 export function resolvePoses() {
@@ -41,7 +67,8 @@ export function resolvePoses() {
   for (const p of POSES) {
     const raw = p.at();
     if (raw === null) continue;
-    out.push({ ...p, ...(mob ? MOBILE[p.key] : null), scroll: Math.min(raw, maxScroll) });
+    const stage = mob && p.key === 'hero' ? heroStage() : null;
+    out.push({ ...p, ...(mob ? MOBILE[p.key] : null), ...stage, scroll: Math.min(raw, maxScroll) });
   }
   // keep them strictly increasing so the interpolation never divides by zero
   for (let i = 1; i < out.length; i += 1) {

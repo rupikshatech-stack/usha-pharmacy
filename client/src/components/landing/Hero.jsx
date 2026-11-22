@@ -15,7 +15,7 @@ export default function Hero() {
         <div className="lp-hero-veil" />
       </div>
 
-      <div className="relative mx-auto flex min-h-[min(44rem,100svh)] max-w-5xl flex-col items-center justify-center px-4 pb-24 pt-24 text-center sm:pb-32 sm:pt-32">
+      <div data-hero-stage className="lp-hero-body relative mx-auto flex min-h-[min(44rem,100svh)] max-w-5xl flex-col items-center justify-center px-4 pb-24 pt-24 text-center sm:pb-32 sm:pt-32">
         <p data-rise className="text-[12px] font-semibold uppercase tracking-[0.22em] text-muted">
           Built for Indian pharmacies
         </p>
