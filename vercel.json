@@ -3,6 +3,7 @@
   "installCommand": "npm install --ignore-scripts && npm --prefix server install && npm --prefix client install",
   "buildCommand": "npm --prefix client run build",
   "outputDirectory": "client/dist",
+  "regions": ["bom1"],
   "functions": {
     "api/index.js": {
       "maxDuration": 300,
@@ -11,7 +12,18 @@
   },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|assets/)(?!.*\\.[A-Za-z0-9]+$).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/((?!api/).*)",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; frame-src 'self' blob:; img-src 'self' data: blob:; object-src 'none'; script-src 'self' 'sha256-nHl2UFI/8TE9C4OA+atemv0fSlBIZl3VkzLzZ7kzaZk='; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
+      ]
+    }
   ],
   "crons": [
     { "path": "/api/cron/expiry-alerts", "schedule": "0 1 * * *" }
