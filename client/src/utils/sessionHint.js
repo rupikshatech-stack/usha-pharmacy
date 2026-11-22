@@ -8,9 +8,14 @@
  * opens the site address is sent straight to their dashboard rather than shown the marketing page.
  *
  * So this browser remembers, in localStorage, that it last had a session. It is only a HINT to skip a pointless
- * request, never a credential and never trusted for anything: the server decides who is signed in. A wrong hint
- * costs at most one extra request (stale: the server says 401 and the hint is cleared) or one extra click
- * (missing: a signed-in person lands on the sign-in page, which finds their session and forwards them).
+ * request, never a credential and never trusted for anything: the server decides who is signed in.
+ *
+ *   - A STALE hint (session gone, hint left) costs one round of failing requests; the 401 clears it.
+ *   - A MISSING hint (session alive, no hint) means the public pages do not look for it: the landing page shows
+ *     the marketing page instead of forwarding to the dashboard, and the sign-in page shows its form instead of
+ *     forwarding. Opening any application page asks the server regardless, finds the session and restores the
+ *     hint. This happens once for anyone already signed in when this shipped, and after the browser's site data
+ *     is cleared.
  */
 const KEY = 'usha:session';
 
