@@ -10,7 +10,12 @@
  * replace the file, update these three constants, and nothing else has to change.
  */
 
-const URL = '/landing/counter.jpg';
+// Imported, not served from /public, so the build content-hashes the file name and it can be cached forever.
+// AVIF first (about 120 KB); a browser that cannot decode it fails the load and falls through to WebP (about 215 KB).
+import counterAvif from '../../../assets/landing/counter.avif';
+import counterWebp from '../../../assets/landing/counter.webp';
+
+const SOURCES = [counterAvif, counterWebp];
 
 export const SRC_W = 2752;
 export const SRC_H = 1536;
@@ -26,14 +31,21 @@ export function loadSource() {
   if (img) return Promise.resolve(img);
   if (!pending) {
     pending = new Promise((resolve) => {
-      const el = new Image();
-      el.decoding = 'async';
-      el.src = URL;
-      el.onload = () => {
-        img = el;
-        resolve(el);
+      const attempt = (i) => {
+        if (i >= SOURCES.length) {
+          resolve(null); // the canvas falls back to a flat fill
+          return;
+        }
+        const el = new Image();
+        el.decoding = 'async';
+        el.onload = () => {
+          img = el;
+          resolve(el);
+        };
+        el.onerror = () => attempt(i + 1);
+        el.src = SOURCES[i];
       };
-      el.onerror = () => resolve(null); // the canvas falls back to a flat fill
+      attempt(0);
     });
   }
   return pending;

@@ -8,7 +8,16 @@ import { defineConfig, loadEnv } from 'vite'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        // Link previews need ABSOLUTE addresses for og:url and og:image. They come from APP_URL (already a production
+        // variable), so a custom domain needs no edit here. Without it (local, preview) they stay root-relative.
+        name: 'site-url',
+        transformIndexHtml: (html) => html.replaceAll('__SITE_URL__', (env.APP_URL || '').replace(/\/+$/, '')),
+      },
+    ],
     // Without this, every dynamic import is inlined into one bundle, so three.js (only ever used by the public
     // landing page) would be downloaded by the application too. Splitting keeps it in its own lazy chunk.
     build: { rolldownOptions: { output: { codeSplitting: true } } },

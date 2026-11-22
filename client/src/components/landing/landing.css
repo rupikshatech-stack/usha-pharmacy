@@ -154,6 +154,16 @@
   pointer-events: none;
 }
 
+/* When the page stacks (the same query as STACKED_QUERY in scene3d/poses.js) the capsule gets a stage of its own
+   above the eyebrow instead of sitting behind the headline. The 3D scene reads this padding to place and size
+   the capsule, so the two cannot drift apart. */
+@media (max-width: 820px), (max-aspect-ratio: 1/1) {
+  .lp-hero-body {
+    justify-content: flex-start;
+    padding-top: clamp(10rem, 26svh, 16rem);
+  }
+}
+
 /* The cloud sits behind the words; this keeps the middle of the hero dark enough to read against. */
 .lp-hero-veil {
   position: absolute;
@@ -486,7 +496,9 @@ footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
   position: absolute;
   inset: 0;
   z-index: -2;
-  background-image: url('/landing/modules-bg.jpg');
+  /* WebP for every browser; AVIF (about 25% smaller again) where image-set() with a type is understood. */
+  background-image: url('../../assets/landing/modules-bg.webp');
+  background-image: image-set(url('../../assets/landing/modules-bg.avif') type('image/avif'), url('../../assets/landing/modules-bg.webp') type('image/webp'));
   background-size: cover;
   background-position: center;
 }

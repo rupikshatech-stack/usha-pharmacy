@@ -105,7 +105,8 @@
   inset: 0;
   z-index: 3;
   background-color: var(--app); /* covers the frame before the image decodes */
-  background-image: url('/landing/layers-bg.jpg');
+  background-image: url('../../../assets/landing/layers-bg.webp');
+  background-image: image-set(url('../../../assets/landing/layers-bg.avif') type('image/avif'), url('../../../assets/landing/layers-bg.webp') type('image/webp'));
   background-size: cover;
   background-position: center;
   pointer-events: none;

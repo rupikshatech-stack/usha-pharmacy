@@ -6,18 +6,20 @@ import LandingNav from '../../components/landing/LandingNav';
 import BackdropLayers from '../../components/landing/BackdropLayers';
 import Scene3DDock from '../../components/landing/scene3d/Scene3DDock';
 import Hero from '../../components/landing/Hero';
-import ZoomSplitScene from '../../components/landing/zoom/ZoomSplitScene';
 import StatsRow from '../../components/landing/StatsRow';
-import LaptopStage from '../../components/landing/LaptopStage';
 import ModulesGrid from '../../components/landing/ModulesGrid';
 import WhyThisExists from '../../components/landing/WhyThisExists';
-import ProductShowcase from '../../components/landing/ProductShowcase/ProductShowcase';
+import DeferredSection from '../../components/landing/DeferredSection';
 import Audiences from '../../components/landing/Audiences';
 import HowItWorks from '../../components/landing/HowItWorks';
 import ClosingCta from '../../components/landing/ClosingCta';
 import '../../components/landing/landing.css';
 
 // three.js is ~520 KB: it must stay behind a dynamic import or it lands in the counter app's bundle.
+// Below the fold: not needed for the first paint, so each is its own chunk, mounted once the page has settled.
+const ZoomSplitScene = lazy(() => import('../../components/landing/zoom/ZoomSplitScene'));
+const LaptopStage = lazy(() => import('../../components/landing/LaptopStage'));
+const ProductShowcase = lazy(() => import('../../components/landing/ProductShowcase/ProductShowcase'));
 const PharmacyScene3D = lazy(() => import('../../components/landing/scene3d/PharmacyScene3D'));
 
 /** The public front door. Signed-in visitors skip it and go straight to the application. */
@@ -41,12 +43,12 @@ export default function Landing() {
         <LandingNav />
         <main>
           <Hero />
-          <ZoomSplitScene />
+          <DeferredSection component={ZoomSplitScene} className="min-h-[420vh] sm:min-h-[470vh]" />
           <StatsRow />
-          <LaptopStage />
+          <DeferredSection component={LaptopStage} id="motion" className="min-h-[1100px]" />
           <ModulesGrid />
           <WhyThisExists />
-          <ProductShowcase />
+          <DeferredSection component={ProductShowcase} id="platform" className="min-h-[640vh]" />
           <Audiences />
           <HowItWorks />
           <ClosingCta />

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import AppSidebar from '../components/layout/AppSidebar';
 import AppHeader from '../components/layout/AppHeader';
+import { Spinner } from '../components/common/ui';
 
 const KEY = 'usha:sidebar-collapsed';
 const readCollapsed = () => {
@@ -39,7 +40,10 @@ export default function AppLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader collapsed={collapsed} onOpenMobile={() => setMobileOpen(true)} onToggleCollapse={toggleCollapse} />
         <main id="main" className="flex-1 overflow-y-auto">
-          <Outlet />
+          {/* The shell stays put while the next screen's chunk loads. */}
+          <Suspense fallback={<Spinner />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

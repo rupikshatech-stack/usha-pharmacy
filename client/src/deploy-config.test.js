@@ -42,7 +42,7 @@ describe('the fallback to the app shell', () => {
 
 describe('security headers on the pages', () => {
   it('sets the four headers, and not on /api (the API sets its own)', () => {
-    assert.equal(config.headers.length, 1);
+    assert.ok(config.headers.length >= 1);
     assert.equal(new RegExp(`^${config.headers[0].source}$`).test('/api/health'), false);
     assert.equal(new RegExp(`^${config.headers[0].source}$`).test('/'), true);
     assert.equal(new RegExp(`^${config.headers[0].source}$`).test('/login'), true);
@@ -74,5 +74,49 @@ describe('security headers on the pages', () => {
 describe('where the function runs', () => {
   it('is a single region, next to the database', () => {
     assert.deepEqual(config.regions, ['bom1'], 'the Atlas cluster is in AWS Mumbai; move this and the cluster together');
+  });
+});
+
+describe('caching', () => {
+  const rule = config.headers.find((h) => h.headers.some((x) => x.key.toLowerCase() === 'cache-control'));
+  const matches = (p) => new RegExp(`^${rule.source}$`).test(p);
+
+  it('caches everything under /assets for a year, immutable, because the build puts a content hash in each name', () => {
+    assert.ok(rule, 'a Cache-Control rule is expected');
+    assert.equal(rule.headers.find((h) => h.key.toLowerCase() === 'cache-control').value, 'public, max-age=31536000, immutable');
+    for (const p of ['/assets/index-abc123.js', '/assets/counter-B8uquhyi.avif', '/assets/index-XuJdLBii.css']) assert.equal(matches(p), true, p);
+  });
+
+  it('never applies it to anything that is not hashed: the page, the API, or the files copied from /public', () => {
+    for (const p of ['/', '/login', '/dashboard', '/api/health', '/favicon.svg', '/logo/logo.jpg', '/icons.svg']) assert.equal(matches(p), false, `${p} must keep revalidating`);
+  });
+
+  it('only ever puts hashed files in /assets: nothing from /public is published there', () => {
+    const publicDir = path.join(repo, 'client', 'public');
+    const top = fs.readdirSync(publicDir);
+    assert.equal(top.includes('assets'), false, 'client/public/assets would be served immutable without a hash in its name');
+  });
+
+  it('keeps the photographs under src/assets so the build hashes them (a copy in /public would not be)', () => {
+    const dir = path.join(repo, 'client', 'src', 'assets', 'landing');
+    assert.ok(fs.readdirSync(dir).some((f) => f.endsWith('.avif')) && fs.readdirSync(dir).some((f) => f.endsWith('.webp')));
+    assert.equal(fs.existsSync(path.join(repo, 'client', 'public', 'landing')), false);
+  });
+});
+
+describe('the Node version', () => {
+  it('is pinned to one major, so Vercel never moves to a new Node on its own', () => {
+    const { engines } = JSON.parse(fs.readFileSync(path.join(repo, 'package.json'), 'utf8'));
+    assert.match(engines.node, /^\d+\.x$/, `engines.node is "${engines.node}"; a range such as ">=20" triggers Vercel's auto-upgrade warning`);
+  });
+});
+
+describe('the link-preview tags', () => {
+  it('carry a description and Open Graph tags whose addresses are filled in at build time', () => {
+    for (const needle of ['name="description"', 'property="og:title"', 'property="og:description"', 'property="og:image"', 'property="og:url"', 'name="twitter:card"']) {
+      assert.ok(indexHtml.includes(needle), `index.html is missing ${needle}`);
+    }
+    assert.match(indexHtml, /content="__SITE_URL__\/og-image\.png"/);
+    assert.ok(fs.existsSync(path.join(repo, 'client', 'public', 'og-image.png')), 'the preview image is missing');
   });
 });
