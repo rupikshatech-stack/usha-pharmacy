@@ -78,6 +78,14 @@ Note that connecting the Blob store adds `BLOB_STORE_ID` and `BLOB_WEBHOOK_PUBLI
 
 Vercel adds this when the Blob store is connected; it is not something to set by hand. It is only read by the SDK when verifying the callback of a **client-side (presigned) upload**. This app uploads from the server (`server/services/storage/blobStorage.js`: `put`, `get`, `del`, `list`), has no client-upload route and registers no callback, so there is no webhook to verify and nothing is unprotected. It is a public key, not a secret. Leave it. If direct-to-Blob uploads are added later (to lift the 4 MB cap), their callback route must verify the signature with it (`handleUpload` does so automatically).
 
+## Before you deploy
+
+Run **`npm run verify:full`** from the repository root before each production deploy. It is the push gate (`verify`: lint,
+build, unit tests, crossings) followed by the full browser suite (`npm run e2e`), about 20 minutes and around 3 GB of free
+memory. It is intentionally **not** in the pre-push hook yet: the browser suite is slow and was only recently made
+reliable, so it waits for a streak of clean runs before it gates every push. Until then, running it before a deploy is the
+only thing that catches a broken screen the unit tests cannot see.
+
 ## Rolling back
 
 Promote the previous deployment in Vercel (Deployments → ⋯ → Promote). No data migration is involved.

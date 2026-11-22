@@ -23,7 +23,9 @@
     "migrate": "npm --prefix server run migrate",
     "prepare": "simple-git-hooks",
     "hooks": "simple-git-hooks",
-    "verify:crossings": "npm --prefix e2e run crossings"
+    "verify:crossings": "npm --prefix e2e run crossings",
+    "e2e": "npm --prefix e2e run e2e",
+    "verify:full": "npm run verify && npm run e2e"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

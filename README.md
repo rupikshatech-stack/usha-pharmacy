@@ -254,6 +254,8 @@ are in [docs/modules.md](docs/modules.md#scheduled-jobs--near-expiry-email-diges
 | `npm run test:server` / `test:client` | One suite |
 | `npm run verify` | **The gate.** lint → build → client tests → server tests → crossings |
 | `npm run verify:crossings` | The cross-module suite alone |
+| `npm run e2e` | The full browser suite alone (real Chrome, ~110 checks; starts its own API, database and web server) |
+| `npm run verify:full` | **Before each deploy.** `verify`, then the full browser suite. About 20 minutes; needs roughly 3 GB of free memory |
 | `npm run seed` | Creates the first organization and administrator |
 | `npm run migrate` | Runs every migration in order |
 
@@ -316,8 +318,31 @@ npm run verify:crossings                # from the root
 cd e2e && node crossings.mjs --keep     # leave the stack up afterwards, to poke at
 ```
 
-`cd e2e && npm run e2e` runs the separate browser suite: real Chrome on a desktop and a phone-sized
-screen, with an accessibility scan of every page in both themes.
+`npm run e2e` (from the root, or `npm run e2e` in `e2e/`) runs the separate browser suite: real Chrome on a
+desktop and a phone-sized screen, with an accessibility scan of every page in both themes.
+
+### The full browser suite and the push hook
+
+The crossings suite is part of `verify` and so of the pre-push hook. The **full** browser suite is not, on purpose:
+
+- **It is slow** (about 10 to 15 minutes on top of `verify`) and heavy: a throwaway database, an API, a dev web
+  server and several browser contexts, around 3 GB of free memory.
+- **It has only just been made reliable.** Until it has a streak of clean runs, gating every push on it would block
+  pushes on timing, not on bugs.
+
+Run `npm run verify:full` **before each deploy** (it is `verify` followed by the full browser suite). Once it has passed
+cleanly on, say, ten runs in a row, move it into the pre-push hook.
+
+Rules the suite learned the hard way, so new tests do not re-introduce them:
+
+- **Wait for the answer, not for the absence of a spinner.** After changing a filter, `settled()` can return before the new
+  request has started. Wait until the table shows what the new filter should show.
+- **A "loaded" check must include the route spinner.** Screens are lazy chunks; use `PAGE_SETTLED`, which also waits
+  out the "Loading…" status, not a skeleton-only check.
+- **Each browser context signs in on its own** (`signedInContext`). Contexts built from one saved sign-in share a
+  session, and the server revokes a session when an already-rotated refresh token is reused, which happens once the
+  first context outlives the 15-minute access token.
+- **Never use a context after it has been closed.** `d` is closed before the dark-mode section; later tests open their own.
 
 ## Git workflow
 
@@ -327,6 +352,8 @@ The repository uses **simple-git-hooks**, installed by `npm install` through the
 |---|---|---|
 | `pre-commit` | `npm run lint` | a few seconds |
 | `pre-push` | `npm run verify` | about 7 minutes |
+
+The full browser suite is deliberately not in either hook; see *The full browser suite and the push hook* above.
 
 `SKIP_SIMPLE_GIT_HOOKS=1 git push` bypasses them. Prefer that to `--no-verify`, so the intent is
 obvious in the shell history.

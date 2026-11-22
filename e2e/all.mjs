@@ -1,6 +1,9 @@
 // One command for the whole browser test run:  npm run e2e   (from /e2e)
-// Starts a throwaway API + demo data (port 4100) and a web server (port 5200), runs run.mjs, then shuts everything down.
-// Your development servers (4000 / 5173) and database are never touched.
+//
+// NOT part of `npm run verify` or the pre-push hook, on purpose: it is slow (10-15 minutes) and needs about 3 GB of free
+// memory, and it has only just been made reliable. Run it before each deploy with `npm run verify:full` (from the root).
+// When it has passed cleanly about ten runs in a row, move it into the hook. See "The full browser suite and the push
+// hook" in the README. (The smaller crossings suite, `npm run crossings`, IS gated.)
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
