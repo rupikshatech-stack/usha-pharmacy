@@ -62,8 +62,39 @@ async function login(page) {
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL('**/dashboard', { timeout: 20000 });
 }
-const loaded = async (page) => { await page.locator('tbody tr').first().waitFor({ timeout: 15000 }); await page.waitForFunction(() => !document.querySelector('.skeleton'), null, { timeout: 15000 }); };
-const openStock = async (page) => { const group = page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /Stock Management/ }); if ((await group.getAttribute('aria-expanded')) !== 'true') { await group.click(); await page.waitForTimeout(300); } };
+/**
+ * "The page has finished loading": no skeleton rows AND no "Loading…" spinner. Routes are lazy now, so on a first visit the
+ * shell shows a spinner while the screen's code arrives; a skeleton-only check passes during that and reads an empty page.
+ * A string, not a function, so it can be shared by every waitForFunction.
+ */
+const PAGE_SETTLED = `!document.querySelector('.skeleton') && ![...document.querySelectorAll('[role="status"]')].some((e) => /^\\s*Loading/.test(e.textContent))`;
+/**
+ * A browser context that has signed in ITSELF. Do not build later contexts from `dctx.storageState()`: every context made
+ * from one snapshot shares one session, and the server revokes a session when a refresh token that has already been rotated
+ * is presented again. Once the first context has been running longer than the access-token lifetime (15 minutes) it rotates
+ * the token, and any context started from the early snapshot then refreshes with the old one, loses its session and lands on
+ * /login. That made "mobile: dark mode works" fail only on slow runs. Own session each: no shared state to go stale.
+ */
+async function signedInContext(options) {
+  const ctx = await browser.newContext(options);
+  const page = await ctx.newPage();
+  try {
+    await login(page);
+  } finally {
+    await page.close();
+  }
+  return ctx;
+}
+const loaded = async (page) => { await page.locator('tbody tr').first().waitFor({ timeout: 15000 }); await page.waitForFunction(PAGE_SETTLED, null, { timeout: 15000 }); };
+/** Sidebar entries that hold others (Stock Management, Business Analytics) are buttons that expand; their links are not reachable until they do. */
+const openGroup = async (page, name) => {
+  const group = page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name });
+  if ((await group.getAttribute('aria-expanded')) !== 'true') {
+    await group.click();
+    await page.waitForFunction((el) => el.getAttribute('aria-expanded') === 'true', await group.elementHandle());
+  }
+};
+const openStock = (page) => openGroup(page, /Stock Management/);
 const heading = (page, text) => page.getByRole('heading', { level: 1, name: text }).waitFor({ timeout: 15000 });
 const noHorizontalScroll = async (page) => {
   const { sw, iw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
@@ -177,12 +208,11 @@ const dctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }
 const d = await dctx.newPage();
 watch(d, 'desktop');
 await login(d);
-const authState = await dctx.storageState();
 
 await check('dashboard: KPI cards, charts and alerts render with data', async () => {
   await d.goto(`${BASE}/dashboard`);
   await d.getByRole('navigation', { name: 'Main' }).waitFor();
-  await d.waitForFunction(() => !document.querySelector('.skeleton'), null, { timeout: 15000 });
+  await d.waitForFunction(PAGE_SETTLED, null, { timeout: 15000 });
   const text = await d.locator('main').innerText();
   assert.match(text, /Low stock|Low Stock/i);
   assert.ok(!(await d.getByText('Something went wrong').count()), 'no error state');
@@ -727,6 +757,9 @@ await check('transfers: create a draft, submit, dispatch and receive it — stoc
 
   await d.goto(`${BASE}/inventory/batches?store=${await northId()}`);
   await loaded(d);
+  // The Store column only exists once the separate /branches request has answered (Batches.jsx adds it when there is
+  // more than one store), and `loaded` does not wait for that: reading the rows first can find no Store column at all.
+  await d.getByRole('columnheader', { name: 'Store' }).waitFor({ timeout: 15000 });
   const rows = (await d.locator('tbody').innerText()).replace(/\s+/g, ' ');
   assert.match(rows, /Crocin Advance/);
   assert.match(rows, /North Branch Store/);
@@ -2249,7 +2282,9 @@ await check('compounds: a plain formulation label stays simple, and a preparatio
 });
 
 await check('business analytics: KPIs against real trade, a comparison period, chart switching and a store filter', async () => {
-  await d.getByRole('link', { name: 'Business Analytics', exact: true }).click();
+  // Business Analytics is a group in the sidebar now: expand it, then choose Overview inside it
+  await openGroup(d, /Business Analytics/);
+  await d.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Overview', exact: true }).click();
   await d.getByRole('heading', { name: 'Business Analytics', exact: true }).waitFor();
   await d.getByText('Monitor business performance, inventory health, and financial activity.').waitFor();
 
@@ -2278,14 +2313,14 @@ await check('business analytics: KPIs against real trade, a comparison period, c
 
   // the period is part of the question: a day with no trade says so rather than showing yesterday's figures
   await d.getByRole('combobox', { name: 'Period' }).selectOption('yesterday');
-  await d.waitForFunction(() => !document.querySelector('.skeleton'));
+  await d.waitForFunction(PAGE_SETTLED);
   const breakdown = d.getByRole('region', { name: 'Transaction breakdown' }).or(d.locator('[aria-label="Transaction breakdown"]')).first();
   await breakdown.waitFor();
   await d.getByRole('combobox', { name: 'Period' }).selectOption('thisMonth');
 
   // and so is the store
   await d.getByRole('combobox', { name: 'Store' }).selectOption({ index: 1 });
-  await d.waitForFunction(() => !document.querySelector('.skeleton'));
+  await d.waitForFunction(PAGE_SETTLED);
   await kpis.getByText('Total sales', { exact: true }).waitFor();
 });
 
@@ -2295,17 +2330,34 @@ await check('daily transaction report: opened from the breakdown with its filter
     const text = await d.getByLabel(new RegExp(`^${label}: `)).first().getAttribute('aria-label');
     return Number(text.replace(/^[^:]*:\s*/, '').replace(/[^\d.]/g, ''));
   };
-  const settled = () => d.waitForFunction(() => !document.querySelector('.skeleton'), null, { timeout: 15000 });
+  const settled = () => d.waitForFunction(PAGE_SETTLED, null, { timeout: 15000 });
 
-  // the Overview's breakdown is a way in, not just a picture: choosing Sales opens the report already filtered to it
+  // The Overview's breakdown is a way in, not just a picture. Sales and purchases have reports of their own (see mixLink
+  // in Analytics.jsx), so choosing Sales opens THAT report; the two kinds of return open this one, already filtered.
   await d.goto(`${BASE}/analytics`);
   await settled();
+  // what a screen reader is told matches where the row goes (see MIX_DESTINATIONS in utils/analytics.js)
+  assert.match(await d.getByRole('link', { name: /^Sales: / }).getAttribute('aria-label'), /Open the Sales Report\.$/);
+  assert.match(await d.getByRole('link', { name: /^Purchases: / }).getAttribute('aria-label'), /Open the Purchase Report\.$/);
+  assert.match(await d.getByRole('link', { name: /^Sales returns: / }).getAttribute('aria-label'), /Open the transaction report\.$/);
   await d.getByRole('link', { name: /^Sales: / }).click();
+  await heading(d, 'Sales Report');
+  await d.goto(`${BASE}/analytics`);
+  await settled();
+  await d.getByRole('link', { name: /^Sales returns: / }).click();
   await heading(d, 'Daily Transaction Report');
   await settled();
-  assert.match(new URL(d.url()).search, /type=sale/, 'the chosen category travelled in the address');
+  assert.match(new URL(d.url()).search, /type=salesReturn/, 'the chosen category travelled in the address');
+  assert.equal(await d.getByRole('combobox', { name: 'Transaction type' }).inputValue(), 'salesReturn');
+  await d.getByRole('button', { name: /Type: / }).waitFor(); // and it says so as a chip you can take off
+
+  // the rest of the report is exercised on sales, the kind with the most to filter, search and export
+  await d.goto(`${BASE}/analytics/transactions?type=sale`);
+  await heading(d, 'Daily Transaction Report');
+  await settled();
+  assert.match(new URL(d.url()).search, /type=sale/);
   assert.equal(await d.getByRole('combobox', { name: 'Transaction type' }).inputValue(), 'sale');
-  await d.getByRole('button', { name: /Type: Sale/ }).waitFor(); // and it says so as a chip you can take off
+  await d.getByRole('button', { name: /Type: Sale/ }).waitFor();
 
   // the demo data has real invoices, so the list is documents and money, not placeholders
   const row = d.locator('tbody tr').first();
@@ -2366,6 +2418,16 @@ await check('daily transaction report: opened from the breakdown with its filter
   // a transfer is listed but is never trade — the row says so itself
   await d.getByRole('combobox', { name: 'Transaction type' }).selectOption('transfer');
   await settled();
+  // `settled` can return before the new filter's request has even started, so the first row may still be the previous
+  // filter's. Wait until the table is showing the transfers (or says there are none), then assert.
+  await d.waitForFunction(
+    () => {
+      const row = document.querySelector('tbody tr');
+      return row ? /not counted/.test(row.innerText) : /No transaction matches/.test(document.body.innerText);
+    },
+    null,
+    { timeout: 15000 },
+  ).catch(() => {});
   if (await d.locator('tbody tr').count()) {
     assert.match((await d.locator('tbody tr').first().innerText()).replace(/\s+/g, ' '), /not counted/, 'a transfer is shown, and shown not to count');
   }
@@ -2373,6 +2435,8 @@ await check('daily transaction report: opened from the breakdown with its filter
   // the export carries every matching row, with the filters printed on the file
   await d.getByRole('combobox', { name: 'Transaction type' }).selectOption('sale');
   await settled();
+  // again wait for the answer to the new filter: the first row must be a sale, not the transfers still on screen
+  await d.waitForFunction(() => { const row = document.querySelector('tbody tr'); return Boolean(row) && !/not counted/.test(row.innerText); }, null, { timeout: 15000 });
   const expected = await figure('Transactions');
   const [file] = await Promise.all([d.waitForEvent('download'), d.getByRole('button', { name: 'Export CSV' }).click()]);
   assert.match(file.suggestedFilename(), /^usha-transactions-\d{4}-\d{2}-\d{2}\.csv$/);
@@ -2502,14 +2566,14 @@ await check('error: an expired session sends the user back to the login page', a
 /* ---------- dark mode + accessibility */
 console.log('\nDark mode and accessibility (desktop)');
 await dctx.close();
-const dark = await browser.newContext({ viewport: { width: 1440, height: 900 }, storageState: authState });
+const dark = await signedInContext({ viewport: { width: 1440, height: 900 } });
 const dk = await dark.newPage();
 watch(dk, 'dark');
 for (const [id, url, h1] of PAGES) {
   await check(`dark mode: ${id} — dark background, light text, readable; and light mode passes the same checks`, async () => {
     await dk.goto(`${BASE}${url}`);
     await dk.getByRole('navigation', { name: 'Main' }).waitFor();
-    await dk.waitForFunction(() => !document.querySelector('.skeleton'), null, { timeout: 15000 });
+    await dk.waitForFunction(PAGE_SETTLED, null, { timeout: 15000 });
     assert.equal(await dk.getByText('Something went wrong').count(), 0, `${id} loaded into an error state`);
     for (const theme of ['light', 'dark']) {
       await setTheme(dk, theme);
@@ -2556,7 +2620,7 @@ await dark.close();
 
 /* ============================================================ Mobile */
 console.log('\nMobile (390×844)');
-const mctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, storageState: authState });
+const mctx = await signedInContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 const m = await mctx.newPage();
 watch(m, 'mobile');
 await check('mobile: the sidebar is hidden, the menu button opens it, choosing a page closes it', async () => {
@@ -2575,7 +2639,7 @@ for (const [id, url, h1] of PAGES) {
   await check(`mobile: ${id} fits the screen without sideways page scrolling`, async () => {
     await m.goto(`${BASE}${url}`);
     await m.getByRole('button', { name: 'Open menu' }).waitFor();
-    await m.waitForFunction(() => !document.querySelector('.skeleton'), null, { timeout: 15000 });
+    await m.waitForFunction(PAGE_SETTLED, null, { timeout: 15000 });
     assert.equal(await m.getByText('Something went wrong').count(), 0, `${id} loaded into an error state`);
     await noHorizontalScroll(m);
     await shot(m, `mobile-${id}`);
@@ -2645,10 +2709,20 @@ await check('a non-admin who types /roles is told so, rather than shown an empty
 });
 
 await check('an administrator still sees the Roles & Users page itself', async () => {
-  await d.goto(`${BASE}/roles`);
-  await heading(d, 'Roles & Users');
-  await d.locator('tbody tr').first().waitFor({ timeout: 15000 });
-  assert.ok((await d.locator('tbody tr').count()) >= 5, 'the five built-in roles are listed');
+  // NOT `d`: its context was closed (dctx.close()) to start the dark-mode section, so every later use of it fails with
+  // "Target page, context or browser has been closed". A context of its own, signed in on its own, as the dark and mobile
+  // sections have.
+  const actx = await signedInContext({ viewport: { width: 1400, height: 900 } });
+  const ap = await actx.newPage();
+  watch(ap, 'admin');
+  try {
+    await ap.goto(`${BASE}/roles`);
+    await heading(ap, 'Roles & Users');
+    await ap.locator('tbody tr').first().waitFor({ timeout: 15000 });
+    assert.ok((await ap.locator('tbody tr').count()) >= 5, 'the five built-in roles are listed');
+  } finally {
+    await actx.close();
+  }
 });
 
 
