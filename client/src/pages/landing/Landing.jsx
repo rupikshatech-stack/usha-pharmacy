@@ -48,7 +48,7 @@ export default function Landing() {
           <DeferredSection component={LaptopStage} id="motion" className="min-h-[1100px]" />
           <ModulesGrid />
           <WhyThisExists />
-          <DeferredSection component={ProductShowcase} id="platform" className="min-h-[640vh]" />
+          <DeferredSection component={ProductShowcase} id="platform" className="min-h-[600vh] lg:min-h-[820vh]" />
           <Audiences />
           <HowItWorks />
           <ClosingCta />
