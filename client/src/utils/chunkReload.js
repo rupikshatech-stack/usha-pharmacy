@@ -9,6 +9,11 @@
  * "Once" matters: if the file is missing for some other reason, reloading again and again would trap the person in a
  * loop. The time of the last attempt is kept in sessionStorage; a second failure inside the window is left to surface
  * as the ordinary error. If storage is unavailable there is no way to guard against a loop, so no reload is tried.
+ *
+ * /assets is cached for a year as `immutable`, and the platform applies that header to a 404 as well. So the browser
+ * may now be holding a stored 404 for the chunk that failed. Reloading alone would be served that stored answer if
+ * the file ever exists again (a rollback, or a revert that rebuilds the same hash). The failed address is therefore
+ * fetched once with `cache: 'reload'`, which replaces whatever is stored for it, before the page reloads.
  */
 const KEY = 'usha:chunk-reload';
 export const RELOAD_WINDOW_MS = 30_000;
@@ -26,10 +31,32 @@ export function canReloadOnce(getStorage, now = Date.now()) {
   }
 }
 
+/** The address of the chunk that failed, read from Vite's error, and only if it is on this site. */
+export function failedChunkUrl(event, origin) {
+  const found = /https?:\/\/[^\s"')]+/.exec(String(event?.payload?.message ?? ''));
+  if (!found) return null;
+  try {
+    const url = new URL(found[0]);
+    return url.origin === origin ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 export function installChunkReload(win = window) {
   win.addEventListener('vite:preloadError', (event) => {
     if (!canReloadOnce(() => win.sessionStorage)) return; // already tried: let the error show
     event.preventDefault(); // we are handling it; stop Vite rethrowing into the page
-    win.location.reload();
+    const reload = () => win.location.reload();
+    const url = failedChunkUrl(event, win.location.origin);
+    if (url && typeof win.fetch === 'function') {
+      // Replace a stored (possibly 404) answer for this address, then reload. Whatever the fetch does, reload.
+      Promise.resolve()
+        .then(() => win.fetch(url, { cache: 'reload' }))
+        .catch(() => {})
+        .then(reload);
+    } else {
+      reload();
+    }
   });
 }

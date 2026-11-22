@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { RELOAD_WINDOW_MS, canReloadOnce, installChunkReload } from './chunkReload.js';
+import { RELOAD_WINDOW_MS, canReloadOnce, failedChunkUrl, installChunkReload } from './chunkReload.js';
 
 const memory = () => {
   const m = new Map();
@@ -44,5 +44,34 @@ describe('reloading once after a deploy removed a chunk', () => {
     listeners['vite:preloadError'](second);
     assert.equal(second.prevented, false, 'the second failure must reach the page as an error, not be hidden');
     assert.equal(reloads, 1, 'and must not reload again');
+  });
+});
+
+describe('replacing a stored 404 before the reload', () => {
+  const ORIGIN = 'https://pharmacy.example';
+  const failure = (url) => ({ payload: new Error(`Failed to fetch dynamically imported module: ${url}`), preventDefault() {} });
+
+  it('reads the failed address from the error, and only when it is on this site', () => {
+    assert.equal(failedChunkUrl(failure(`${ORIGIN}/assets/PharmacyScene3D-abc.js`), ORIGIN), `${ORIGIN}/assets/PharmacyScene3D-abc.js`);
+    assert.equal(failedChunkUrl(failure('https://elsewhere.example/assets/x.js'), ORIGIN), null);
+    assert.equal(failedChunkUrl({ payload: new Error('boom') }, ORIGIN), null);
+    assert.equal(failedChunkUrl({}, ORIGIN), null);
+  });
+
+  it('fetches it with cache: reload first, and only then reloads, even if that fetch fails', async () => {
+    for (const fetchResult of [() => Promise.resolve({ status: 200 }), () => Promise.reject(new Error('offline'))]) {
+      const order = [];
+      const listeners = {};
+      const win = {
+        sessionStorage: memory(),
+        location: { origin: ORIGIN, reload: () => order.push('reload') },
+        fetch: (url, init) => { order.push(`fetch ${url} ${init.cache}`); return fetchResult(); },
+        addEventListener: (name, fn) => { listeners[name] = fn; },
+      };
+      installChunkReload(win);
+      listeners['vite:preloadError'](failure(`${ORIGIN}/assets/a-1.js`));
+      await new Promise((r) => setTimeout(r, 10));
+      assert.deepEqual(order, [`fetch ${ORIGIN}/assets/a-1.js reload`, 'reload']);
+    }
   });
 });
