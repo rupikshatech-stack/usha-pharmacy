@@ -1,38 +1,56 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useLocation } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { setCsrfToken } from '../services/api';
 import { setDisplayDateFormat, setDisplayTimezone } from '../utils/format';
+import { clearSessionHint, readSessionHint, shouldAskServer, writeSessionHint } from '../utils/sessionHint';
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Whether the server has answered "who is signed in?" (or this visitor never needed it to).
+  const [checked, setChecked] = useState(false);
+  const { pathname } = useLocation();
   const userRef = useRef(null);
   userRef.current = user;
 
-  // Load the current user once on startup. A 401 here means "not signed in" (the API client has
-  // already tried to renew the session silently).
+  // Ask only where the answer matters. A signed-out visitor on the landing, sign-in or forgot-password page has
+  // nothing to find, so asking costs two failing requests (me, then refresh) on every view. `loading` is derived
+  // rather than stored so that the render which first lands on a protected page already reads "loading": a guard
+  // never sees "no user, not loading" in between and bounces a signed-in person to /login.
+  const mustAsk = !checked && shouldAskServer(pathname, readSessionHint());
+  const loading = mustAsk;
+
+  // Load the current user the first time a page needs to know. A 401 here means "not signed in" (the API client
+  // has already tried to renew the session silently), and it also retires a stale hint.
   useEffect(() => {
+    if (!mustAsk) return;
     authService
       .me()
       .then((d) => {
         setCsrfToken(d.csrfToken);
         setDisplayTimezone(d.user.organization?.timezone);
         setDisplayDateFormat(d.user.organization?.dateFormat);
+        writeSessionHint();
         setUser(d.user);
       })
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch(() => {
+        clearSessionHint();
+        setUser(null);
+      })
+      .finally(() => setChecked(true));
+  }, [mustAsk]);
 
   const login = useCallback(async (email, password, rememberMe) => {
     const d = await authService.login(email, password, rememberMe);
     setCsrfToken(d.csrfToken);
     setDisplayTimezone(d.user.organization?.timezone);
     setDisplayDateFormat(d.user.organization?.dateFormat);
+    writeSessionHint();
+    setChecked(true); // signing in IS the answer: nothing left to ask
     setUser(d.user);
     return d.user;
   }, []);
@@ -43,7 +61,9 @@ export function AuthProvider({ children }) {
     } catch {
       /* the server may be unreachable; still sign out locally */
     }
+    clearSessionHint();
     setCsrfToken(null);
+    setChecked(true);
     setUser(null);
   }, []);
 
@@ -54,6 +74,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const onUnauthorized = () => {
       if (userRef.current) toast.error('Your session has expired. Please sign in again.', { id: 'session-expired' });
+      clearSessionHint();
       setCsrfToken(null);
       setUser(null);
     };
