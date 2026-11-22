@@ -21,8 +21,8 @@ uniform float uCardH;
 uniform float uRadius; // set per viewport by warp.js; see radiusFor()
 
 const float RADIUS_UNUSED = 0.0;
-const float BEND   = 1.15;
-const float CURL   = 0.55;
+const float BEND   = 0.6;   // MUST match BEND in core.js
+const float CURL   = 0.35;  // MUST match CURL in core.js
 
 void place(float p, out vec3 pos, out float ry) {
   float over = max(0.0, abs(p) - 1.0) * sign(p);

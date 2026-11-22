@@ -19,16 +19,19 @@ export const SLOT = HOLD + ROLL;
 export const LOOP = SLOT * CARD_COUNT; // 12.4s for four cards
 
 // --- track shape ----------------------------------------------------------
-export const RADIUS = 3.6; // the wide-screen arc; narrow viewports get less, see radiusFor()
+export const RADIUS = 5.0; // the wide-screen arc; narrow viewports get less, see radiusFor()
 
 /**
  * How wide the arc should be for a given stage aspect. A phone cannot fit three big cards
  * side by side, so the arc tightens and the neighbours tuck in behind the centred card
  * instead of flying off the canvas.
  */
-export const radiusFor = (aspect) => 1.8 + (RADIUS - 1.8) * smoothstep(1.1, 2.4, aspect);
-export const BEND = 1.15; // radians between adjacent slots. MUST match shaders.js
-const CURL = 0.55; // extra outward peel once past the neighbours
+export const radiusFor = (aspect) => 3.0 + (RADIUS - 3.0) * smoothstep(1.1, 2.4, aspect);
+export const BEND = 0.6; // radians between adjacent slots. MUST match shaders.js
+// BEND and CURL are kept small on purpose: a card's OUTER edge sits at
+// (p + span/2) * BEND + over * CURL, and once that passes PI/2 the card folds
+// back on itself and collapses to a sliver. Raise RADIUS, not these, to widen.
+const CURL = 0.35; // extra outward peel once past the neighbours
 
 export const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 export const lerp = (a, b, t) => a + (b - a) * t;
