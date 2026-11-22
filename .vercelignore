@@ -1,0 +1,33 @@
+# What `vercel deploy` uploads. The build runs on Vercel (see vercel.json), so
+# dependencies and build output are never sent. Without this file the CLI has to
+# walk every dependency and local cache first, which exhausts memory on this machine.
+
+# dependencies and build output: reinstalled / rebuilt remotely
+node_modules
+**/node_modules
+client/dist
+
+# local caches, scratch space and installed agent skills
+.agents
+.claude
+.npm-cache
+.tmp
+.vercel
+
+# local databases, uploads and test data
+server/.data
+server/.test-data
+server/.mongo-bin
+server/uploads
+server/secrets
+
+# secrets and local config
+.env
+.env.*
+.mcp.json
+
+# not needed to build or run
+e2e
+docs
+**/*.test.js
+server/tests
