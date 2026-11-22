@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Usha Pharmacy \u2014 multi-tenant wholesale pharmacy ERP (React + Express + MongoDB)",
   "engines": {
-    "node": ">=20"
+    "node": "26.x"
   },
   "scripts": {
     "install:all": "npm install && npm --prefix server install && npm --prefix client install",

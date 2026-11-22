@@ -55,6 +55,28 @@ To check it from a terminal: `curl -s -o /dev/null -w "%{http_code}
 - **Rate limits are per instance**, not global: they slow abuse but are weaker than on a single server.
 - `scripts/cleanup-uploads.js` only knows the local disk; it does not clean Blob yet.
 
+## Node version
+
+The root `package.json` pins `"engines": { "node": "26.x" }`, the major the project's Node.js setting runs. A range such as `>=20` makes Vercel print "will automatically upgrade when a new major Node.js Version is released" on every build, because it would then move to a new major without anyone choosing to. To move up, change this line and the project's Node.js Version setting together, deploy, and check `/api/health`. Developing on a different major only prints an `EBADENGINE` warning from `npm install`; it does not stop anything. (`server/package.json` keeps `>=20` as the lowest Node the server code needs; Vercel does not read it.)
+
+## Caching
+
+- **`/assets/*` is cached for a year and marked `immutable`.** Everything the build writes there has a content hash in its name (`index-BONJ0TKq.js`), so a changed file is a new URL and a cached one can never be stale. The page itself (`/`, `/login`, ...) and anything copied from `client/public` (`favicon.svg`, `logo/`, `og-image.png`) are not hashed and keep revalidating on every request.
+- **So an image that should be cached forever must be imported by the code, not dropped in `client/public`.** The landing photographs live in `client/src/assets/landing/` (AVIF first, WebP behind it) for that reason. `src/deploy-config.test.js` fails if `client/public/assets` appears or the photographs move.
+- Open Graph tags in `client/index.html` use the address in `APP_URL` at build time (`__SITE_URL__`), so link previews follow a custom domain without an edit. Where `APP_URL` is not set (local builds, Preview) they stay root-relative and crawlers ignore them.
+
+## Preview deployments
+
+**Preview deployments are not expected to work as a full app, and that is deliberate.** Production variables are scoped to Production only, so a Preview build has no database, no secrets and no `CLIENT_ORIGIN`; the pages load but `/api` does not start. Previews are also behind Vercel Authentication, so only team members can open one.
+
+Giving Preview "safe" values would mean a separate Atlas database with its own credentials and a mail sandbox, and a different `CLIENT_ORIGIN` for every deployment (each Preview has its own address). Pointing Preview at the production database instead would let any branch push read and write real data. If you want working previews, set up that separate database first, then add Preview-scoped values for `MONGODB_URI`, `JWT_SECRET`, `CRON_SECRET`, `APP_URL`, and `CLIENT_ORIGIN` set to the Preview address.
+
+Note that connecting the Blob store adds `BLOB_STORE_ID` and `BLOB_WEBHOOK_PUBLIC_KEY` to **Preview as well as Production**. A Preview that did get a database would therefore write uploads into the production store. Untick Preview in the store's connection settings before enabling real previews.
+
+## `BLOB_WEBHOOK_PUBLIC_KEY`
+
+Vercel adds this when the Blob store is connected; it is not something to set by hand. It is only read by the SDK when verifying the callback of a **client-side (presigned) upload**. This app uploads from the server (`server/services/storage/blobStorage.js`: `put`, `get`, `del`, `list`), has no client-upload route and registers no callback, so there is no webhook to verify and nothing is unprotected. It is a public key, not a secret. Leave it. If direct-to-Blob uploads are added later (to lift the 4 MB cap), their callback route must verify the signature with it (`handleUpload` does so automatically).
+
 ## Rolling back
 
 Promote the previous deployment in Vercel (Deployments → ⋯ → Promote). No data migration is involved.
