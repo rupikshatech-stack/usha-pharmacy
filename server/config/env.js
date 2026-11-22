@@ -23,6 +23,18 @@ const schema = z
     // One or more allowed browser origins, comma separated.
     CLIENT_ORIGIN: z.string().default('http://localhost:5173'),
 
+    // --- Hosting on Vercel (see docs/deploy-vercel.md). Set in the Vercel project, never in a file. ---
+    // Vercel sets VERCEL itself; it is what tells this schema the app is running there.
+    VERCEL: z.preprocess(emptyToUndefined, z.string().optional()),
+    // Vercel Cron sends this as `Authorization: Bearer <CRON_SECRET>` to /api/cron/expiry-alerts; the route refuses
+    // every other caller. No default: a guessable secret would be worse than none.
+    CRON_SECRET: z.preprocess(emptyToUndefined, z.string().min(16, 'must be at least 16 characters').optional()),
+    // Credentials for the private Vercel Blob store that holds uploads (the disk is ephemeral on Vercel). Either one
+    // works: BLOB_STORE_ID is added by connecting the store to the project, BLOB_READ_WRITE_TOKEN is the older token.
+    // Read by the storage layer straight from the environment; they are validated here so a missing one fails at boot.
+    BLOB_READ_WRITE_TOKEN: z.preprocess(emptyToUndefined, z.string().optional()),
+    BLOB_STORE_ID: z.preprocess(emptyToUndefined, z.string().optional()),
+
     // --- Authentication / sessions ---
     ACCESS_TOKEN_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
     SESSION_HOURS: z.coerce.number().int().min(1).max(72).default(12), // lifetime without "remember me"
@@ -45,6 +57,15 @@ const schema = z
     if (v.NODE_ENV === 'production') {
       if (!v.MONGODB_URI) ctx.addIssue({ code: 'custom', path: ['MONGODB_URI'], message: 'is required in production' });
       if (!v.JWT_SECRET) ctx.addIssue({ code: 'custom', path: ['JWT_SECRET'], message: 'is required in production' });
+    }
+    // Only on Vercel: there the disk is ephemeral (uploads would vanish) and Vercel Cron is the only thing that can
+    // run the nightly digest. A production server of your own keeps files on disk and runs the digest from its
+    // scheduler (scripts/run-expiry-alerts.js, which loads this same schema), so it needs neither.
+    if (v.NODE_ENV === 'production' && v.VERCEL) {
+      if (!v.CRON_SECRET) ctx.addIssue({ code: 'custom', path: ['CRON_SECRET'], message: 'is required in production on Vercel' });
+      if (!v.BLOB_STORE_ID && !v.BLOB_READ_WRITE_TOKEN) {
+        ctx.addIssue({ code: 'custom', path: ['BLOB_READ_WRITE_TOKEN'], message: 'or BLOB_STORE_ID is required in production on Vercel (connect a private Blob store)' });
+      }
     }
     if (v.COOKIE_SAME_SITE === 'none' && v.COOKIE_SECURE === false) {
       ctx.addIssue({ code: 'custom', path: ['COOKIE_SECURE'], message: 'must not be false when COOKIE_SAME_SITE=none' });

@@ -12,7 +12,9 @@ The web app is served as static files and the API runs as **one Vercel Function*
 
 ## Project setup
 
-1. **Storage → Create a Blob store, access = Private.** Connect it to the project. This adds `BLOB_STORE_ID` automatically. Private matters: files must only be readable through the app's own authenticated endpoints. The access mode cannot be changed later.
+1. **Storage → Create a Blob store, access = Private.** Connect it to the project. Connecting adds the store's credential to the project's environment automatically, as `BLOB_STORE_ID` (or, for a token-based store, `BLOB_READ_WRITE_TOKEN`); the app accepts either. Private matters: files must only be readable through the app's own authenticated endpoints. The access mode cannot be changed later.
+
+   **One of the two is required on Vercel.** `server/config/env.js` checks at start-up and the function refuses to boot without it, rather than losing uploads later on the ephemeral disk. Set it (and `CRON_SECRET`, below) **before** deploying this version. Confirm with `vercel env ls`.
 2. **Environment variables** (Project → Settings → Environment Variables, Production):
 
    | Variable | Value |
@@ -20,7 +22,8 @@ The web app is served as static files and the API runs as **one Vercel Function*
    | `MONGODB_URI` | the Atlas connection string |
    | `JWT_SECRET` | 32+ random characters |
    | `CLIENT_ORIGIN` and `APP_URL` | `https://<your-domain>` |
-   | `CRON_SECRET` | a long random string (Vercel sends it to the cron route) |
+   | `CRON_SECRET` | **required**; 16+ random characters. Vercel sends it to the cron route as `Authorization: Bearer <CRON_SECRET>`. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` |
+   | `BLOB_STORE_ID` or `BLOB_READ_WRITE_TOKEN` | **required**; added by connecting the Blob store (step 1). Not needed off Vercel |
    | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | your mail provider — without `SMTP_HOST` the digest is only logged |
    | `GOOGLE_CLOUD_PROJECT_ID`, `GOOGLE_DOCUMENT_AI_LOCATION`, `GOOGLE_DOCUMENT_AI_PROCESSOR_ID`, `GOOGLE_CREDENTIALS_JSON` | invoice reading; the last one is the service-account key's JSON itself |
    | AI extraction keys | as in `server/.env.example` |
