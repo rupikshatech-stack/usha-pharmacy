@@ -85,6 +85,9 @@ function GlobalSearch() {
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
       <input
         ref={ref}
+        id="header-search"
+        name="q"
+        autoComplete="off"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         aria-label="Search medicines"
