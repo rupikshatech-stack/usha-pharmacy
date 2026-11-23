@@ -3,8 +3,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ACCESS_COOKIE } from '../utils/cookies.js';
 import { findActiveSession, verifyAccessToken } from '../services/session.service.js';
-import { rolePermissionsFor } from '../services/roles.service.js';
-import { runWithTenant } from '../utils/tenantContext.js';
+import { withRolePermissions } from '../services/roles.service.js';
 
 /**
  * Authenticates EVERY protected request:
@@ -52,8 +51,7 @@ const build = (allowPending) =>
      * A missing row means this database has not run the roles migration: `rolePermissions` stays undefined and
      * `effectivePermissions` falls back to the built-in map, which is exactly the old behaviour.
      */
-    const rolePermissions = user.organizationId ? await runWithTenant(user.organizationId, () => rolePermissionsFor(user.organizationId, user.role)) : null;
-    req.user = rolePermissions ? { ...user, rolePermissions } : user;
+    req.user = await withRolePermissions(user);
     req.session = session;
     next();
   });

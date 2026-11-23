@@ -2,6 +2,7 @@ import { Role, User } from '../models/index.js';
 import { ApiError } from '../utils/ApiError.js';
 import { escapeRegex } from '../utils/regex.js';
 import { paginated } from '../utils/pagination.js';
+import { runWithTenant } from '../utils/tenantContext.js';
 import { audit } from './audit.service.js';
 import { holdersOfUsersManage } from '../scripts/lib/rolesMigration.js';
 import { CATALOGUE_PERMISSIONS, PERMISSION_GROUPS, PERMISSIONS, ROLE_KEY_PATTERN, ROLE_PERMISSIONS, SYSTEM_ROLE_KEYS, SYSTEM_ROLES, hasPermission } from '../config/permissions.js';
@@ -284,6 +285,26 @@ export async function rolePermissionsFor(orgId, key) {
   if (!orgId || !key) return null;
   const row = await Role.findOne({ organizationId: orgId, key }).select('permissions').lean();
   return row ? row.permissions || [] : null;
+}
+
+/**
+ * The user with what their role grants RIGHT NOW attached as `rolePermissions`, which is what `effectivePermissions`
+ * reads. The ONE place this happens: the authentication middleware uses it for every request, and `presentUser` (login,
+ * refresh) uses it for the user the browser is handed. They used to differ, so a custom role (or a built-in one whose
+ * permissions had been edited) came back from sign-in with no permissions at all while /auth/me had them.
+ *
+ * Without a role row the user comes back unchanged and `effectivePermissions` uses the built-in map, as it always did.
+ *
+ * Accepts a lean object (the middleware) or a Mongoose document (sign-in). A document must become a plain object BEFORE it
+ * is spread: spreading one copies Mongoose's internals and none of the fields, which once made sign-in return a user with no
+ * role and no `mustChangePassword`.
+ */
+export async function withRolePermissions(user) {
+  if (!user?.organizationId) return user;
+  const rolePermissions = await runWithTenant(user.organizationId, () => rolePermissionsFor(user.organizationId, user.role));
+  if (!rolePermissions) return user;
+  const plain = typeof user.toObject === 'function' ? user.toObject() : user;
+  return { ...plain, rolePermissions };
 }
 
 /**

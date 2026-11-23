@@ -5,6 +5,7 @@ import { AuditLog, Organization, User } from '../models/index.js';
 import { ApiError } from '../utils/ApiError.js';
 import { runWithTenant, unscoped } from '../utils/tenantContext.js';
 import { audit } from './audit.service.js';
+import { withRolePermissions } from './roles.service.js';
 import { createSession, revokeUserSessions } from './session.service.js';
 
 const BCRYPT_ROUNDS = 12;
@@ -24,6 +25,16 @@ export const toPublicUser = (u, org) => ({
   // `dateFormat` is display only: it tells the screens how to WRITE a date. Dates themselves are stored as UTC instants.
   organization: org ? { id: org._id, name: org.name, slug: org.slug, timezone: org.timezone || 'Asia/Kolkata', logo: org.logo || '', dateFormat: org.settings?.general?.dateFormat || 'dd MMM yyyy' } : undefined,
 });
+
+/**
+ * The user as the browser is handed it by sign-in and by token refresh: what the role grants is looked up, exactly as the
+ * authentication middleware does for every other request (and so for /auth/me). `toPublicUser` on its own reads only the
+ * built-in role map, so a custom role came back from sign-in with `permissions: []` and the app opened nearly empty
+ * until a reload made it ask /auth/me. Always go through here with a user that came straight from the database.
+ */
+export async function presentUser(user, org) {
+  return toPublicUser(await withRolePermissions(user), org);
+}
 
 /**
  * Audit rows belong to the user's organization, so they are written inside that tenant's context.

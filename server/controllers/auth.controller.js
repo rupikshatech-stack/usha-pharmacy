@@ -11,7 +11,7 @@ export async function login(req, res) {
   const { email, password, rememberMe } = req.body;
   const { user, org, session, accessToken, refreshToken, csrfToken } = await authService.login({ email, password, rememberMe, ...clientInfo(req) });
   setAuthCookies(res, { accessToken, refreshToken, csrfToken, rememberMe: session.rememberMe });
-  res.json({ success: true, data: { user: authService.toPublicUser(user, org), csrfToken } });
+  res.json({ success: true, data: { user: await authService.presentUser(user, org), csrfToken } });
 }
 
 /** Exchanges the refresh cookie for a new access token (and rotates the refresh token). */
@@ -32,7 +32,7 @@ export async function refresh(req, res) {
   const csrfToken = req.cookies?.[CSRF_COOKIE] || sessions.newCsrfToken();
   setAuthCookies(res, { accessToken: sessions.signAccessToken(user._id, session._id), refreshToken, csrfToken, rememberMe: session.rememberMe });
   const org = await Organization.findById(user.organizationId).lean();
-  res.json({ success: true, data: { user: authService.toPublicUser(user, org), csrfToken } });
+  res.json({ success: true, data: { user: await authService.presentUser(user, org), csrfToken } });
 }
 
 export async function me(req, res) {
@@ -42,6 +42,7 @@ export async function me(req, res) {
     csrfToken = sessions.newCsrfToken();
     setCsrfCookie(res, csrfToken, req.session.rememberMe);
   }
+  // req.user already carries the role's permissions: the authentication middleware attached them (withRolePermissions).
   res.json({ success: true, data: { user: authService.toPublicUser(req.user, org), csrfToken } });
 }
 
