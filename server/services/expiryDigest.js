@@ -101,15 +101,18 @@ const TIER_COLOUR = { expired: '#b42318', under15: '#b54708', under30: '#b54708'
  * The HTML is a table with inline styles and no images. Mail clients strip stylesheets, block remote images by
  * default, and a pharmacist reading this on a phone at seven in the morning should see the numbers either way.
  */
+/** "1 batch needs attention" / "3 batches need attention": the verb agrees with the count, in the subject and in both bodies. */
+const needsAttention = (n) => `${n} ${n === 1 ? 'batch needs' : 'batches need'} attention`;
+
 export function renderDigest({ organizationName, digest, appUrl, thresholds, today }) {
   const link = `${appUrl}/analytics/expiry`;
   const worst = digest.groups[0];
-  const subject = `${organizationName}: ${digest.count} ${digest.count === 1 ? 'batch' : 'batches'} need attention — ${worst.label.toLowerCase()}`;
+  const subject = `${organizationName}: ${needsAttention(digest.count)} — ${worst.label.toLowerCase()}`;
 
   const text = [
     `${organizationName} — expiring stock, ${today}`,
     '',
-    `${digest.count} ${digest.count === 1 ? 'batch needs' : 'batches need'} attention, worth ${inr(digest.totalValue)}.`,
+    `${needsAttention(digest.count)}, worth ${inr(digest.totalValue)}.`,
     '',
     ...digest.groups.flatMap((g) => [
       `${g.label} — ${g.count} ${g.count === 1 ? 'batch' : 'batches'}, ${inr(g.value)}`,
@@ -159,7 +162,7 @@ export function renderDigest({ organizationName, digest, appUrl, thresholds, tod
       <div style="font:700 18px/1.3 system-ui,-apple-system,'Segoe UI',sans-serif;color:#101828">${escapeHtml(organizationName)}</div>
       <div style="font:13px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif;color:#475467;margin-top:2px">Expiring stock · ${escapeHtml(today)}</div>
       <div style="font:14px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif;color:#101828;margin-top:14px">
-        <strong>${digest.count} ${digest.count === 1 ? 'batch needs' : 'batches need'} attention</strong>, worth ${inr(digest.totalValue)}.
+        <strong>${needsAttention(digest.count)}</strong>, worth ${inr(digest.totalValue)}.
       </div>
     </td></tr>
     ${digest.groups.map(group).join('')}

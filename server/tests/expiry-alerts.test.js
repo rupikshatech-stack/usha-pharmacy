@@ -145,6 +145,21 @@ describe('buildDigest', () => {
     assert.match(m.text, /Dolo <script>/, 'the plain-text part carries the name as typed');
     assert.match(m.text, /analytics\/expiry/);
   });
+
+  it('says "1 batch needs attention" for one and "3 batches need attention" for three, in the subject and in both bodies', () => {
+    const render = (n) => {
+      const rows = Array.from({ length: n }, (_, i) => row(String(i + 1), 'under30'));
+      return renderDigest({ organizationName: 'Grammar Pharmacy', digest: buildDigest({ rows }), appUrl: 'http://x', thresholds: [15, 30, 90], today: '2026-11-23' });
+    };
+    const one = render(1);
+    assert.match(one.subject, /: 1 batch needs attention —/, one.subject);
+    assert.match(one.text, /^1 batch needs attention, worth /m);
+    assert.match(one.html, /<strong>1 batch needs attention<\/strong>/);
+    const three = render(3);
+    assert.match(three.subject, /: 3 batches need attention —/, three.subject);
+    assert.match(three.text, /^3 batches need attention, worth /m);
+    assert.match(three.html, /<strong>3 batches need attention<\/strong>/);
+  });
 });
 
 describe('whether an organization gets a digest at all', () => {

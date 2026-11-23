@@ -1,15 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../services/api';
 
-/** GET helper with loading/error state; refetches when `url` or `params` change. */
-export function useFetch(url, params) {
+/**
+ * GET helper with loading/error state; refetches when `url` or `params` change.
+ *
+ * `enabled: false` makes no request at all (data stays null, loading is false): for a screen that would otherwise ask
+ * for something the signed-in user is already known not to be allowed, which can only fail.
+ */
+export function useFetch(url, params, { enabled = true } = {}) {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState(null);
   const key = JSON.stringify(params || {});
   const seq = useRef(0);
 
   const load = useCallback(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     const id = ++seq.current;
     setLoading(true);
     setError(null);
@@ -18,7 +27,7 @@ export function useFetch(url, params) {
       .then((d) => id === seq.current && setData(d))
       .catch((e) => id === seq.current && setError(e.message))
       .finally(() => id === seq.current && setLoading(false));
-  }, [url, key]);
+  }, [url, key, enabled]);
 
   useEffect(load, [load]);
   return { data, loading, error, reload: load };

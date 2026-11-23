@@ -8,6 +8,7 @@ import { roundOffFor } from '../../utils/billMath';
 import { useFetch, useDebounced } from '../../hooks/useFetch';
 import { printInvoice } from '../../utils/printInvoice';
 import { useAuth } from '../../context/AuthContext';
+import { userCan } from '../../components/layout/nav';
 import { Button, EmptyState, ErrorState, Modal, Spinner, cx, inputCls } from '../../components/common/ui';
 
 const HELD_KEY = 'usha:held-bills';
@@ -37,7 +38,12 @@ const Shortcut = ({ k, label }) => (
 
 export default function SellingPoint() {
   const { user } = useAuth();
-  const org = useFetch('/organization');
+  // The seller's state (the first two digits of its GSTIN) decides CGST+SGST versus IGST in this PREVIEW. /organization needs
+  // `settings:read`, which a billing-only role does not have: asking would only 403, so it is not asked. Such a user previews as
+  // "same state" (the server still works out the SAVED invoice from the organization's own GSTIN). KNOWN LIMITATION, same root
+  // cause as printInvoice falling back to the bare name: the till has no read-only source for the seller's details.
+  const canReadOrg = userCan(user, 'settings:read');
+  const org = useFetch('/organization', undefined, { enabled: canReadOrg });
   const orgState = (org.data?.gstin || '').slice(0, 2); // the first two digits of a GSTIN are the state
   const [search, setSearch] = useState('');  const q = useDebounced(search, 250);
   const { data: products, loading, error, reload } = useFetch('/pos/products', { q });
@@ -482,7 +488,9 @@ export default function SellingPoint() {
                         aria-label={`Discount percent for ${i.name}`}
                         value={i.discountPercent}
                         onChange={(e) => patch(i.medicineId, { discountPercent: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
-                        className="w-full rounded-lg border border-line bg-card px-1.5 py-1"
+                        // This column is only ~36px of input: the browser's own up/down arrows took most of it and clipped the number
+                        // ("0" showed as a sliver). The value is typed, so the arrows go and the number is centred.
+                        className="w-full rounded-lg border border-line bg-card px-1 py-1 text-center tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                       />
                     </td>
                     <td className="px-2.5 py-2">
