@@ -85,6 +85,9 @@ const invoiceSchema = new Schema(
     reversalReason: { type: String, trim: true },
 
     // Client-generated key that makes "save" safe to retry or double-click: the same key never creates a second invoice.
+    // The seller as they were at the moment of sale (legal name, address, GSTIN, licences, bank), so a reprint never shows later edits.
+    // Hidden from every read unless asked for with .select('+seller'); it is turned into the response's `print` block, never sent raw.
+    seller: { type: Schema.Types.Mixed, select: false },
     idempotencyKey: { type: String, trim: true, maxlength: 100 },
     createdBy: { type: Types.ObjectId, ref: 'User' },
   },

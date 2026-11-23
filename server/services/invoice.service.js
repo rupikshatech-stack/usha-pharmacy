@@ -10,7 +10,7 @@ import { sellableBatchFilter, sellableUnitsExpr } from './stock.service.js';
 import { withTransaction } from './transaction.service.js';
 import { computeBill, roundOffFor, rupees } from '../utils/billMath.js';
 import { issueNumber } from './documentNumbering.service.js';
-import { stateOfGstin } from '../utils/invoicePrint.js';
+import { stateOfGstin, sellerSnapshotOf } from '../utils/invoicePrint.js';
 
 /** A sale is inter-state when the customer's state is known and differs from ours (the state is the first two digits of a GSTIN). */
 function interStateSale(org, customer) {
@@ -39,7 +39,7 @@ async function createInvoiceOnce(req, { customer, items, discount, paymentType, 
   return withTransaction(async (session) => {
     // The organization's own rules for this sale. Read first, so a sale that is going to be refused is refused before
     // any stock has been touched rather than after it has been allocated and rolled back.
-    const org = await Organization.findById(req.orgId, 'gstin settings timezone').lean();
+    const org = await Organization.findById(req.orgId, 'name legalName phone gstin address licenses bank settings timezone').lean();
     const billing = org?.settings?.general?.billing || {};
 
     /**
@@ -174,6 +174,7 @@ async function createInvoiceOnce(req, { customer, items, discount, paymentType, 
           invoiceDate: now, // UTC instant of the sale; reports bucket it into the organization's local day/month
           ...(idempotencyKey && { idempotencyKey }),
           createdBy: req.user._id,
+          seller: sellerSnapshotOf(org), // frozen with the sale: a later edit to the organization never rewrites this invoice
         },
       ],
       { session },
@@ -215,7 +216,7 @@ async function createInvoiceOnce(req, { customer, items, discount, paymentType, 
   });
 }
 
-const findByKey = (req, key) => Invoice.findOne({ organizationId: req.orgId, idempotencyKey: key }).lean();
+const findByKey = (req, key) => Invoice.findOne({ organizationId: req.orgId, idempotencyKey: key }).select('+seller').lean();
 
 /**
  * Creates an invoice, safely repeatable: if the client sends the same idempotencyKey again (a
@@ -254,7 +255,7 @@ export async function listInvoices(orgId, { search, page, limit }) {
 }
 
 export async function getInvoice(orgId, id) {
-  const invoice = await Invoice.findOne({ _id: id, organizationId: orgId }).lean();
+  const invoice = await Invoice.findOne({ _id: id, organizationId: orgId }).select('+seller').lean();
   if (!invoice) throw new ApiError(404, 'Invoice not found');
   return invoice;
 }

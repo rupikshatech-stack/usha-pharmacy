@@ -15,25 +15,45 @@ import { roundOffFor } from './billMath.js';
 /** The first two digits of a GSTIN are the state. One rule, used by the server to decide CGST+SGST versus IGST and by the till's preview. */
 export const stateOfGstin = (gstin) => String(gstin || '').trim().slice(0, 2);
 
-export function printBlockFor(org) {
+/**
+ * The seller as it is at this moment, in the shape stored on an invoice at sale time. The bank block is kept whole here (whether it
+ * is PRINTED is decided at read time by the layout settings); the logo is not, since it is a file the organization may replace.
+ */
+export function sellerSnapshotOf(org) {
+  const address = org?.address || {};
+  const bank = org?.bank || {};
+  return {
+    name: org?.name || '',
+    legalName: org?.legalName || '',
+    phone: org?.phone || '',
+    gstin: org?.gstin || '',
+    address: { line1: address.line1 || '', line2: address.line2 || '', landmark: address.landmark || '', city: address.city || '', state: address.state || '', pincode: address.pincode || '' },
+    licenses: (org?.licenses || []).map((l) => ({ type: l.type, number: l.number })),
+    bank: { accountHolder: bank.accountHolder || '', bankName: bank.bankName || '', accountNumber: bank.accountNumber || '', ifsc: bank.ifsc || '', branchName: bank.branchName || '', upiId: bank.upiId || '' },
+  };
+}
+
+/**
+ * `seller` is the invoice's own snapshot. Layout, terms and logo are presentation, not facts about the sale, so they stay live.
+ * An invoice with no snapshot (issued before snapshots existed) falls back to the organization as it is now.
+ */
+export function printBlockFor(org, seller) {
   const template = org?.settings?.invoice?.template || {};
   const terms = org?.settings?.invoice?.terms || {};
   const show = template.show || {};
   const printsBank = Boolean(show.bankDetails || show.upiQr); // the client template's defaults for both are off
-  const address = org?.address || {};
+  const s = seller || sellerSnapshotOf(org);
 
   return {
     organization: {
-      name: org?.name || '',
-      legalName: org?.legalName || '',
-      phone: org?.phone || '',
-      gstin: org?.gstin || '',
+      name: s.name,
+      legalName: s.legalName,
+      phone: s.phone,
+      gstin: s.gstin,
       logo: org?.logo || '',
-      address: { line1: address.line1 || '', line2: address.line2 || '', landmark: address.landmark || '', city: address.city || '', state: address.state || '', pincode: address.pincode || '' },
-      licenses: (org?.licenses || []).map((l) => ({ type: l.type, number: l.number })),
-      ...(printsBank
-        ? { bank: { accountHolder: org.bank?.accountHolder || '', bankName: org.bank?.bankName || '', accountNumber: org.bank?.accountNumber || '', ifsc: org.bank?.ifsc || '', branchName: org.bank?.branchName || '', upiId: org.bank?.upiId || '' } }
-        : {}),
+      address: s.address,
+      licenses: s.licenses,
+      ...(printsBank ? { bank: s.bank } : {}),
     },
     settings: {
       template: { paperSize: template.paperSize || 'A4', style: template.style || 'classic', accentColor: template.accentColor || '#0f766e', show: { ...show } },
@@ -42,10 +62,10 @@ export function printBlockFor(org) {
   };
 }
 
-/** The invoice as a plain object with its `print` block attached. The block is never stored: it is read from the organization each time. */
+/** The invoice as a plain object with its `print` block attached and the raw `seller` snapshot removed (it is only ever sent as `print`). */
 export function withPrintBlock(invoice, org) {
-  const plain = typeof invoice?.toObject === 'function' ? invoice.toObject() : invoice;
-  return { ...plain, print: printBlockFor(org) };
+  const { seller, ...plain } = typeof invoice?.toObject === 'function' ? invoice.toObject() : invoice;
+  return { ...plain, print: printBlockFor(org, seller) };
 }
 
 /** What the Selling Point's PREVIEW needs before any invoice exists: the seller's state, and whether the bill is rounded. */

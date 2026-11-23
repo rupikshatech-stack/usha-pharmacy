@@ -83,14 +83,17 @@ describe('the seller block on an invoice, for a user who cannot read settings', 
     assert.equal(r.data.print.settings.template.show.bankDetails, true);
   });
 
-  it('is not stored on the invoice: it is read from the organization each time, so an edit to the organization shows on the next print', async () => {
+  it('is frozen onto the invoice at sale time, and never sent raw: the response carries `print`, not the stored `seller`', async () => {
     const r = await sell(clerk, await stocked());
-    const stored = await h.tenant.runWithTenant(T.org._id, () => h.models.Invoice.findById(r.data._id).lean());
-    assert.equal(stored.print, undefined);
-    await setOrg({ phone: '1111111111' });
-    const read = await clerk.get(`/invoices/${r.data._id}`);
-    assert.equal(read.data.print.organization.phone, '1111111111');
-    await setOrg({ phone: SELLER.phone });
+    assert.equal(r.data.seller, undefined, 'the response shape is unchanged: no new top-level field');
+    assert.equal((await clerk.get(`/invoices/${r.data._id}`)).data.seller, undefined);
+    const stored = await h.tenant.runWithTenant(T.org._id, () => h.models.Invoice.findById(r.data._id).select('+seller').lean());
+    assert.equal(stored.seller.legalName, 'SWS Wholesale Pvt Ltd');
+    assert.equal(stored.seller.gstin, '27AAPFU0939F1ZV');
+    assert.equal(stored.seller.address.city, 'Pune');
+    assert.equal(stored.seller.bank.accountNumber, '50100123456789');
+    const plain = await h.tenant.runWithTenant(T.org._id, () => h.models.Invoice.findById(r.data._id).lean());
+    assert.equal(plain.seller, undefined, 'and an ordinary read of the invoice does not load it');
   });
 
   it("comes back from GET /invoices/:id too (the dialog's Print), but not on every row of the list", async () => {
@@ -169,5 +172,87 @@ describe('the logo printed on the invoice', () => {
     const r = await clerk.get('/settings/logo/anything.png');
     assert.notEqual(r.status, 403, 'permission is not the obstacle: there is simply no such file');
     assert.equal(r.status, 404);
+  });
+});
+
+describe('a reprint shows the seller as they were on the day of the sale', () => {
+  const EDITED = { legalName: 'Renamed Traders LLP', gstin: '29AAACS9999A1Z5', phone: '1111111111', 'address.city': 'Mumbai', 'address.line1': 'New Road 9', 'bank.accountNumber': '99990000111122', 'bank.ifsc': 'ICIC0000001', licenses: [{ type: '20B', number: 'NEW-LIC-7' }] };
+  const ORIGINAL = { legalName: SELLER.legalName, gstin: SELLER.gstin, phone: SELLER.phone, 'address.city': 'Pune', 'address.line1': 'Venkatesh Imperia', 'bank.accountNumber': SELLER.bank.accountNumber, 'bank.ifsc': SELLER.bank.ifsc, licenses: SELLER.licenses };
+
+  it('keeps the original address, GSTIN, licence and bank after the organization is edited, and a new sale uses the new details', async () => {
+    const med = await stocked();
+    const before = await sell(clerk, med);
+    await setOrg(EDITED);
+    try {
+      const reprint = await clerk.get(`/invoices/${before.data._id}`);
+      const t = text(printed(reprint));
+      assert.match(t, /SWS Wholesale Pvt Ltd/);
+      assert.match(t, /GSTIN 27AAPFU0939F1ZV/);
+      assert.match(t, /Venkatesh Imperia/);
+      assert.match(t, /Pune/);
+      assert.match(t, /DL 20B: MH-20B-1/);
+      assert.match(t, /50100123456789/);
+      assert.match(t, /HDFC0001234/);
+      for (const gone of [/Renamed Traders/, /29AAACS9999A1Z5/, /Mumbai/, /New Road 9/, /NEW-LIC-7/, /99990000111122/, /ICIC0000001/, /1111111111/]) assert.doesNotMatch(t, gone, `${gone} is from after the sale`);
+
+      const after = await sell(clerk, med);
+      const t2 = text(printed(after));
+      assert.match(t2, /Renamed Traders LLP/);
+      assert.match(t2, /GSTIN 29AAACS9999A1Z5/);
+      assert.match(t2, /NEW-LIC-7/);
+      assert.match(t2, /99990000111122/);
+      assert.doesNotMatch(t2, /Venkatesh Imperia/);
+    } finally {
+      await setOrg(ORIGINAL);
+    }
+  });
+
+  it('is the same on the idempotent replay of the sale, and on the GET, as on the original response', async () => {
+    const key = uniq('replay');
+    const med = await stocked();
+    const body = { idempotencyKey: key, items: [{ medicineId: med._id, quantity: 1 }] };
+    const first = await clerk.post('/invoices', body);
+    await setOrg(EDITED);
+    try {
+      const again = await clerk.post('/invoices', body);
+      assert.equal(again.data._id, first.data._id);
+      assert.deepEqual(again.data.print.organization, first.data.print.organization);
+      assert.deepEqual((await clerk.get(`/invoices/${first.data._id}`)).data.print.organization, first.data.print.organization);
+    } finally {
+      await setOrg(ORIGINAL);
+    }
+  });
+
+  it('still decides whether the bank prints, and how the page looks, from the CURRENT layout settings', async () => {
+    const r = await sell(clerk, await stocked());
+    await setOrg({ 'settings.invoice.template.show.bankDetails': false, 'settings.invoice.template.show.upiQr': false, 'settings.invoice.template.accentColor': '#123456' });
+    try {
+      const read = await clerk.get(`/invoices/${r.data._id}`);
+      assert.equal(read.data.print.organization.bank, undefined);
+      assert.equal(read.data.print.settings.template.accentColor, '#123456');
+      assert.equal(read.data.print.organization.gstin, '27AAPFU0939F1ZV');
+    } finally {
+      await setOrg({ 'settings.invoice.template.show.bankDetails': true, 'settings.invoice.template.accentColor': '#0f766e' });
+    }
+  });
+
+  it('falls back to the current organization for an invoice issued before snapshots existed', async () => {
+    const r = await sell(clerk, await stocked());
+    await h.tenant.runWithTenant(T.org._id, () => h.models.Invoice.collection.updateOne({ _id: new h.mongoose.Types.ObjectId(r.data._id) }, { $unset: { seller: '' } }));
+    await setOrg({ phone: '2222222222' });
+    try {
+      const read = await clerk.get(`/invoices/${r.data._id}`);
+      assert.equal(read.status, 200);
+      assert.equal(read.data.print.organization.phone, '2222222222', 'a legacy invoice has nothing frozen, so it reads live');
+      assert.equal(read.data.seller, undefined);
+    } finally {
+      await setOrg({ phone: SELLER.phone });
+    }
+  });
+
+  it('is not on the list rows, which stay lean', async () => {
+    const list = await clerk.get('/invoices?limit=5');
+    assert.ok(list.data.items.length > 0);
+    assert.ok(list.data.items.every((i) => i.seller === undefined && i.print === undefined));
   });
 });
