@@ -10,5 +10,6 @@ const router = Router();
 router.use(...tenantGuard);
 
 router.get('/products', can('billing:create'), validate(posQuery, 'query'), h(ctrl.products));
+router.get('/context', can('billing:create'), h(ctrl.context));
 
 export default router;

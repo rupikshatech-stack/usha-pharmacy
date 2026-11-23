@@ -10,12 +10,12 @@ import { sellableBatchFilter, sellableUnitsExpr } from './stock.service.js';
 import { withTransaction } from './transaction.service.js';
 import { computeBill, roundOffFor, rupees } from '../utils/billMath.js';
 import { issueNumber } from './documentNumbering.service.js';
+import { stateOfGstin } from '../utils/invoicePrint.js';
 
-/** The first two digits of a GSTIN are the state. A sale is inter-state when the customer's state is known and differs from ours. */
-const stateOf = (gstin) => String(gstin || '').trim().slice(0, 2);
+/** A sale is inter-state when the customer's state is known and differs from ours (the state is the first two digits of a GSTIN). */
 function interStateSale(org, customer) {
-  const ours = stateOf(org?.gstin);
-  const theirs = stateOf(customer?.gstin);
+  const ours = stateOfGstin(org?.gstin);
+  const theirs = stateOfGstin(customer?.gstin);
   return Boolean(ours && theirs && ours !== theirs);
 }
 

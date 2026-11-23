@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import { tenantGuard } from '../middleware/guards.js';
-import { requirePermission as can } from '../middleware/tenant.js';
+import { requireAnyPermission, requirePermission as can } from '../middleware/tenant.js';
 import { validate } from '../middleware/validate.js';
 import { asyncHandler as h } from '../utils/asyncHandler.js';
 import { generalSettingsSchema, invoiceSettingsSchema, organizationSettingsSchema, previewNumberQuery, resetInvoiceSchema } from '../validators/settings.validator.js';
@@ -30,7 +30,9 @@ router.post('/invoice/reset', can('settings:manage'), validate(resetInvoiceSchem
  */
 router.post('/logo', can('settings:manage'), express.raw({ type: IMAGE_TYPES, limit: logoMaxBytes() + 64 * 1024 }), h(ctrl.uploadLogo));
 router.delete('/logo', can('settings:manage'), h(ctrl.deleteLogo));
-router.get('/logo/:file', can('settings:read'), h(ctrl.getLogo));
+// The logo is printed on every invoice, so anyone who can see or issue an invoice may fetch it (a billing-only user's print would otherwise
+// have a broken image where the logo goes).
+router.get('/logo/:file', requireAnyPermission('settings:read', 'billing:read', 'billing:create'), h(ctrl.getLogo));
 
 router.post('/documents', can('settings:manage'), express.raw({ type: DOCUMENT_TYPES, limit: documentMaxBytes() + 64 * 1024 }), h(ctrl.uploadDocument));
 router.get('/documents/:file', can('settings:read'), h(ctrl.getDocument));

@@ -49,6 +49,12 @@ export const requirePermission = (...permissions) => (req, _res, next) =>
     ? next()
     : next(new ApiError(403, 'You do not have permission to do that.', undefined, 'FORBIDDEN'));
 
+/** Allows the request if the user holds AT LEAST ONE of the permissions (requirePermission demands all of them). */
+export const requireAnyPermission = (...permissions) => (req, _res, next) =>
+  permissions.some((p) => hasPermission(req.user, p))
+    ? next()
+    : next(new ApiError(403, 'You do not have permission to do that.', undefined, 'FORBIDDEN'));
+
 /**
  * The platform door's guard. Runs after `authenticate`, and demands TWO things:
  *
