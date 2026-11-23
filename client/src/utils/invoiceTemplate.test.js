@@ -121,3 +121,17 @@ test('prints a due date only when the invoice has one, and only beside a balance
   assert.ok(!/ by 20 Nov/.test(render({ invoice: { ...owed, dueDate: undefined } })), 'no due date, no "by"');
   assert.ok(!/Due /.test(render({ invoice: { ...owed, due: 0 } })), 'nothing due, nothing said');
 });
+
+test('prints the HSN a saved invoice line carries (hsnCode), and a dash for an old invoice that has none', () => {
+  const line = (extra) => ({ name: 'Paracetamol', batchNo: 'B1', expiryDate: '2028-12-31', mrp: 112, price: 112, quantity: 2, discountPercent: 0, gstPercent: 12, amount: 224, ...extra });
+  // the HSN column sits straight after the item name, so read the cell that follows each name
+  const hsnOf = (items, name) => {
+    const html = renderInvoiceHtml({ invoice: { ...SAMPLE_INVOICE, items }, org, settings: {} });
+    return new RegExp(`<td class="">${name}</td><td class="">([^<]*)</td>`).exec(html)?.[1];
+  };
+  assert.equal(hsnOf([line({ hsnCode: '30049099' })], 'Paracetamol'), '30049099', 'the code stored on the line is printed');
+  const two = [line({ hsnCode: '21069099' }), line({ name: 'Old', hsnCode: '' })];
+  assert.equal(hsnOf(two, 'Paracetamol'), '21069099');
+  assert.equal(hsnOf(two, 'Old'), '—', "an invoice from before HSN was kept prints a dash, not another medicine's code");
+  assert.equal(hsnOf([line({ hsn: '30049099' })], 'Paracetamol'), '30049099', "the sample data's older field name still works");
+});

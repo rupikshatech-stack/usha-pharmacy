@@ -124,7 +124,8 @@ export function renderInvoiceHtml({ invoice, settings = {}, org = {}, preview = 
             : '')
         );
       case 'hsn':
-        return esc(item.hsn || '—');
+        // saved invoice lines carry `hsnCode` (a snapshot taken at sale time); `hsn` is what the sample data uses
+        return esc(item.hsnCode || item.hsn || '—');
       case 'batch':
         return esc(item.batchNo || '—');
       case 'expiry':

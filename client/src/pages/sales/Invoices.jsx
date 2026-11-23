@@ -95,10 +95,10 @@ export default function Invoices() {
           }
         >
           <div className="overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-[480px] text-left text-sm">
+            <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="bg-subtle text-[11px] uppercase tracking-wider text-muted">
                 <tr>
-                  {['Item', 'Batch', 'Qty', 'Rate', 'Disc %', 'Amount'].map((h) => (
+                  {['Item', 'HSN', 'Batch', 'Qty', 'Rate', 'Disc %', 'GST %', 'Amount'].map((h) => (
                     <th key={h} className="px-4 py-2 font-semibold">{h}</th>
                   ))}
                 </tr>
@@ -107,10 +107,12 @@ export default function Invoices() {
                 {open.items.map((it, idx) => (
                   <tr key={idx} className="border-t border-line">
                     <td className="px-4 py-2 font-medium">{it.name}</td>
+                    <td className="px-4 py-2 font-mono text-[13px]">{it.hsnCode || '—'}</td>
                     <td className="px-4 py-2">{it.batchNo}</td>
                     <td className="px-4 py-2">{it.quantity}</td>
                     <td className="px-4 py-2 tabular-nums">{inr(it.price)}</td>
                     <td className="px-4 py-2">{it.discountPercent}</td>
+                    <td className="px-4 py-2">{it.gstPercent ?? 0}</td>
                     <td className="px-4 py-2 tabular-nums">{inr(it.amount)}</td>
                   </tr>
                 ))}
@@ -120,6 +122,16 @@ export default function Invoices() {
           <div className="mt-4 space-y-1 text-right text-sm">
             <div className="text-muted">Subtotal {inr(open.subTotal)}</div>
             <div className="text-muted">Discount {inr(open.discount)}</div>
+            {/* the tax is INSIDE the total (prices are GST-inclusive); this is the same split the printed invoice shows */}
+            <div className="text-muted">Taxable value {inr(open.taxableAmount)}</div>
+            {open.interState ? (
+              <div className="text-muted">IGST {inr(open.igstTotal)}</div>
+            ) : (
+              <>
+                <div className="text-muted">CGST {inr(open.cgstTotal)}</div>
+                <div className="text-muted">SGST {inr(open.sgstTotal)}</div>
+              </>
+            )}
             <div className="text-lg font-extrabold">Total {inr(open.total)}</div>
             {open.returnedAmount > 0 && (
               <div className="text-muted">

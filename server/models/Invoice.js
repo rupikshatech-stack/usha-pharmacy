@@ -17,6 +17,9 @@ const invoiceItem = new Schema(
     // snapshots, so the invoice stays true even when the catalogue changes later
     genericName: String,
     sku: String,
+    // The HSN the medicine carried WHEN IT WAS SOLD. A GST invoice must show it, and like the rest of this snapshot it must not
+    // change if the catalogue is edited later. Invoices written before this field existed have none.
+    hsnCode: { type: String, default: '' },
     mrp: Number,
     expiryDate: Date,
     // the tax that was charged, split out of the inclusive price (amount = taxableAmount + taxAmount − its share of any bill discount)
