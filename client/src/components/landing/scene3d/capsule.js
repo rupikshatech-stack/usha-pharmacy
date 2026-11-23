@@ -126,7 +126,9 @@ export function buildCapsule({ cheap = false } = {}) {
   for (let i = 0; i < MOTES; i += 1) {
     moteSeed.push({
       x: (Math.random() - 0.5) * 9,
-      y: (Math.random() - 0.5) * 6,
+      // +-2.2 world units, not +-3: a mote at the old extreme sat under the sticky header (or on its edge) on some page loads. At the nearest
+      // depth (z = -1.5) 2.2 units, plus the 0.3 drift, still lands more than 15% of the screen height below the top edge.
+      y: (Math.random() - 0.5) * 4.4,
       z: -1.5 - Math.random() * 2.5,
       sp: 0.1 + Math.random() * 0.25,
       ph: Math.random() * Math.PI * 2,
