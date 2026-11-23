@@ -58,7 +58,9 @@ function heroStage() {
   // it clears the header and the eyebrow at every phone and tablet height measured (over a dozen frames each: it bobs and turns).
   const centre = top + pad * 0.5;
   const H = window.innerHeight;
-  return { x: 0, y: 1 - (2 * centre) / H, s: Math.min(0.3, (pad * 0.43) / H) };
+  // A phone stage (166-228px) has no air to spare: the ring's worst frame, a few times in a minute, is as tall as the stage itself, so a phone gets less of it.
+  const share = pad < 240 ? 0.36 : 0.43;
+  return { x: 0, y: 1 - (2 * centre) / H, s: Math.min(0.3, (pad * share) / H) };
 }
 
 /** The pose list for the current breakpoint, with every `at` resolved to a scrollY. */
