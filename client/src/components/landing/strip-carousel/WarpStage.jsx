@@ -19,6 +19,14 @@ import './stripcarousel.css';
 
 const FONT_WAIT_MS = 600;
 
+/*
+ * The moment the reduced-motion visitor's single frame is drawn: the last instant of the hold in which the centred card has finished
+ * counting. The values step across the first 82% of the hold, so this is just inside it, where every figure is at its final value and
+ * its digit roll is complete. It used to be 55%, which froze the card mid-count: "96.4%" with the previous digit still sliding out
+ * behind it, and a bar at 67%. A frozen frame should be the end state, not a snapshot of an animation that never runs.
+ */
+const STILL_AT = HOLD * 0.8195;
+
 export default function WarpStage({ className = '' }) {
   const canvasRef = useRef(null);
   const hostRef = useRef(null);
@@ -73,7 +81,7 @@ export default function WarpStage({ className = '' }) {
     const onRestored = () => {
       if (state.disposed) return;
       build();
-      if (still) drawOnce(HOLD * 0.55);
+      if (still) drawOnce(STILL_AT);
       else if (!raf) raf = requestAnimationFrame(loop);
     };
     canvas.addEventListener('webglcontextlost', onLost, false);
@@ -83,15 +91,15 @@ export default function WarpStage({ className = '' }) {
     io.observe(canvas);
     const onVis = () => { visible = !document.hidden; };
     document.addEventListener('visibilitychange', onVis);
-    const onResize = () => { if (still) drawOnce(HOLD * 0.55); };
+    const onResize = () => { if (still) drawOnce(STILL_AT); };
     window.addEventListener('resize', onResize);
 
     const begin = () => {
       if (state.disposed) return;
       if (!build()) return;
       if (still) {
-        // a representative still: one card centred, part-way through its values
-        drawOnce(HOLD * 0.55);
+        // the still: one card centred, every value at its final reading
+        drawOnce(STILL_AT);
         return;
       }
       start = performance.now();

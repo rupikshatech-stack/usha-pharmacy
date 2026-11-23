@@ -183,13 +183,13 @@ export default function TransferReceiveDialog({ id, onDone, onClose }) {
                           <td className="px-2.5 py-3 text-right tabular-nums text-muted">{l.previouslyReceived}</td>
                           <td className="px-2.5 py-3 text-right font-semibold tabular-nums">{l.remaining}</td>
                           <td className="px-2.5 py-3 text-right">
-                            <input aria-label={`Received quantity of ${label}`} aria-invalid={Boolean(problem)} type="number" min="0" step="1" value={l.quantity} onChange={(e) => edit(i, 'quantity', e.target.value)} className={cx(inputCls, numCls, 'ml-auto', problem && 'border-danger')} />
+                            <input aria-label={`Received quantity of ${label}`} aria-invalid={Boolean(problem)} type="number" inputMode="numeric" min="0" step="1" value={l.quantity} onChange={(e) => edit(i, 'quantity', e.target.value)} className={cx(inputCls, numCls, 'ml-auto', problem && 'border-danger')} />
                           </td>
                           <td className="px-2.5 py-3 text-right">
-                            <input aria-label={`Damaged quantity of ${label}`} aria-invalid={Boolean(problem)} type="number" min="0" step="1" value={l.damaged} onChange={(e) => edit(i, 'damaged', e.target.value)} className={cx(inputCls, numCls, 'ml-auto', problem && 'border-danger')} />
+                            <input aria-label={`Damaged quantity of ${label}`} aria-invalid={Boolean(problem)} type="number" inputMode="numeric" min="0" step="1" value={l.damaged} onChange={(e) => edit(i, 'damaged', e.target.value)} className={cx(inputCls, numCls, 'ml-auto', problem && 'border-danger')} />
                           </td>
                           <td className="px-2.5 py-3 text-right">
-                            <input aria-label={`Missing quantity of ${label}`} aria-invalid={Boolean(problem)} type="number" min="0" step="1" value={l.missing} onChange={(e) => edit(i, 'missing', e.target.value)} className={cx(inputCls, numCls, 'ml-auto', problem && 'border-danger')} />
+                            <input aria-label={`Missing quantity of ${label}`} aria-invalid={Boolean(problem)} type="number" inputMode="numeric" min="0" step="1" value={l.missing} onChange={(e) => edit(i, 'missing', e.target.value)} className={cx(inputCls, numCls, 'ml-auto', problem && 'border-danger')} />
                           </td>
                           <td className="px-2.5 py-3">
                             <input

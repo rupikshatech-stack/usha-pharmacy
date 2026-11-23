@@ -225,3 +225,14 @@ html.theme-anim * {
   .no-print { display: none !important; }
   @page { margin: 14mm; }
 }
+
+/* ---------- Phones: no field under 16px ----------
+   Safari on iOS zooms the whole page when a text field with a font smaller than 16px takes focus, and does not zoom back out. This is
+   unlayered, so it wins over the Tailwind utilities (text-sm and friends) that most fields carry. Checkboxes, radios and buttons are left alone. */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']):not([type='button']):not([type='submit']):not([type='reset']):not([type='image']),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

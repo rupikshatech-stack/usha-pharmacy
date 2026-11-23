@@ -26,14 +26,13 @@ function Tri({ state, onChange, label, disabled }) {
       aria-label={label}
       disabled={disabled}
       onClick={onChange}
-      className={cx(
-        'flex h-4 w-4 shrink-0 items-center justify-center rounded border transition',
-        disabled && 'cursor-not-allowed opacity-50',
-        state === 'none' ? 'border-line bg-card' : 'border-primary bg-primary text-white',
-      )}
+      // The button is a 40x40 touch target (negative margins keep the row as tall as before); the box you see is the 20px square inside it.
+      className={cx('-my-2 -ml-2.5 grid h-10 w-10 shrink-0 place-items-center', disabled && 'cursor-not-allowed opacity-50')}
     >
-      {state === 'all' && <Check className="h-3 w-3" aria-hidden="true" strokeWidth={3} />}
-      {state === 'some' && <Minus className="h-3 w-3" aria-hidden="true" strokeWidth={3} />}
+      <span className={cx('flex h-5 w-5 items-center justify-center rounded border transition', state === 'none' ? 'border-line bg-card' : 'border-primary bg-primary text-white')}>
+        {state === 'all' && <Check className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={3} />}
+        {state === 'some' && <Minus className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={3} />}
+      </span>
     </button>
   );
 }
@@ -108,7 +107,7 @@ export default function PermissionPicker({ catalogue = [], value = [], onChange,
                 >
                   <input
                     type="checkbox"
-                    className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]"
+                    className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--primary)]"
                     checked={held.has(p.key)}
                     disabled={disabled}
                     onChange={() => toggle(p.key)}

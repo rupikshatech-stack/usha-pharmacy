@@ -139,7 +139,7 @@ export default function UserDialog({ user, roles = [], branches = [], saving, er
                 <label key={b.id} className="flex cursor-pointer items-center gap-2.5 bg-card p-3 text-sm hover:bg-subtle/50">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 accent-[var(--primary)]"
+                    className="h-5 w-5 accent-[var(--primary)]"
                     checked={(form.values.branchIds || []).map(String).includes(String(b.id))}
                     onChange={() => toggleBranch(String(b.id))}
                   />

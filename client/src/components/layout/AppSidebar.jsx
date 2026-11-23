@@ -103,7 +103,17 @@ export default function AppSidebar({ collapsed, mobileOpen, onClose, onToggleCol
     if (!mobileOpen) return undefined;
     const onKey = (e) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    // The page behind the drawer must not scroll under the finger. The app scrolls inside <main id="main">, not the body, so that is
+    // what is locked (the body too, for completeness); both are put back exactly as they were.
+    const main = document.getElementById('main');
+    const before = { main: main?.style.overflowY ?? '', body: document.body.style.overflow };
+    if (main) main.style.overflowY = 'hidden';
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      if (main) main.style.overflowY = before.main;
+      document.body.style.overflow = before.body;
+    };
   }, [mobileOpen, onClose]);
 
   return (

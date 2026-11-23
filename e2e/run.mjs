@@ -2671,6 +2671,44 @@ await check('mobile: the add-medicine form is usable (scrolls inside the dialog,
   await noHorizontalScroll(m);
   await shot(m, 'mobile-form');
 });
+/**
+ * The Selling Point on a phone: Save and Save & Print used to sit UNDER the cart table at 390x844 and 375x667 (and under it again at 768 once
+ * "Customer & billing" was opened), so a bill could not be saved by touch. locator.tap() refuses to act when another element would receive
+ * the touch, so a layout change that covers the button again fails here instead of in somebody's shop.
+ */
+const saveBillWithAFinger = async (page, seeded, { openBilling = false } = {}) => {
+  await page.goto(`${BASE}/selling-point`);
+  await page.getByRole('heading', { name: /Selling Point/i }).first().waitFor();
+  await page.getByRole('textbox', { name: 'Search medicine', exact: true }).fill(seeded.name);
+  await page.getByRole('button', { name: new RegExp(seeded.name) }).first().tap();
+  await page.getByRole('row').filter({ hasText: seeded.name }).first().waitFor();
+  if (openBilling) await page.getByRole('button', { name: /Customer . billing/ }).tap();
+  const saveAndPrint = await page.getByRole('button', { name: 'Save & Print', exact: true }).evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return { onScreen: r.top >= 0 && r.bottom <= innerHeight, receivesTouch: top === el || el.contains(top) };
+  });
+  assert.deepEqual(saveAndPrint, { onScreen: true, receivesTouch: true }, 'Save & Print is on screen and not covered');
+  await page.getByRole('button', { name: 'Save', exact: true }).tap({ timeout: 10000 });
+  await page.getByText(/Invoice INV-\d+ saved/).first().waitFor({ timeout: 15000 });
+  await page.getByText('No items added yet').waitFor();
+};
+await check('mobile: a bill can be saved with a finger at 390×844 (Save is not under the cart)', async () => {
+  const seeded = await (await fetch('http://127.0.0.1:4102/seed/pos/on')).json();
+  await saveBillWithAFinger(m, seeded);
+});
+for (const [w, h, openBilling] of [[375, 667, false], [768, 1024, true]]) {
+  await check(`mobile: a bill can be saved with a finger at ${w}×${h}${openBilling ? ' with Customer & billing open' : ''}`, async () => {
+    const seeded = await (await fetch('http://127.0.0.1:4102/seed/pos/on')).json();
+    const sc = await signedInContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    try {
+      const sp = await sc.newPage();
+      await saveBillWithAFinger(sp, seeded, { openBilling });
+    } finally {
+      await sc.close();
+    }
+  });
+}
 await check('mobile: dark mode works', async () => {
   await m.goto(`${BASE}/inventory/batches`);
   await m.getByRole('button', { name: 'Open menu' }).waitFor({ timeout: 45000 });

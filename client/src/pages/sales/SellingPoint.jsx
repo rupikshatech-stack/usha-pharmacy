@@ -209,12 +209,26 @@ export default function SellingPoint() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // Reset and Hold are housekeeping; Save and Save & Print finish the sale. Below lg the second pair lives in a sticky bar.
+  const housekeepingButtons = (
+    <>
+      <Button onClick={reset} className="bg-sage0"><RotateCcw className="h-4 w-4" /> Reset</Button>
+      <Button variant="secondary" onClick={hold}><Pause className="h-4 w-4" /> Hold</Button>
+    </>
+  );
+  const saveButtons = (
+    <>
+      <Button variant="secondary" loading={saving} onClick={() => save(false)}><Save className="h-4 w-4" /> Save</Button>
+      <Button loading={saving} onClick={() => save(true)}><Printer className="h-4 w-4" /> Save & Print</Button>
+    </>
+  );
+
   const setCust = (k) => (e) => setForm((f) => ({ ...f, customer: { ...f.customer, [k]: e.target.value } }));
 
   return (
-    <div className="flex h-full flex-col lg:flex-row">
+    <div className="flex min-h-full flex-col lg:h-full lg:flex-row">
       {/* Product picker */}
-      <section className="flex min-h-0 flex-1 flex-col" aria-label="Medicines">
+      <section className="flex flex-col lg:min-h-0 lg:flex-1" aria-label="Medicines">
         <div className="flex flex-wrap items-center gap-3 border-b border-line bg-card px-4 py-3">
           <h1 className="sr-only">Selling Point</h1>
           <div className="relative min-w-[220px] flex-1">
@@ -238,7 +252,7 @@ export default function SellingPoint() {
             <ListOrdered className="h-4 w-4" /> Held Bills {held.length > 0 && <span className="rounded-full bg-primary px-1.5 text-xs text-on-primary">{held.length}</span>}
           </Button>
         </div>
-        <div className="flex flex-wrap gap-2 bg-subtle px-4 py-2.5">
+        <div className="hidden flex-wrap gap-2 bg-subtle px-4 py-2.5 md:flex">
           <Shortcut k="F1" label="Search" />
           <Shortcut k="F2" label="Save" />
           <Shortcut k="F5" label="Save & Print" />
@@ -250,7 +264,7 @@ export default function SellingPoint() {
           <Shortcut k="Esc" label="Clear" />
         </div>
         {/* tabIndex makes the list scrollable by keyboard even when it is empty or shows a message, which is the only way to reach it without a pointer */}
-        <div className="min-h-[260px] flex-1 overflow-y-auto p-4" tabIndex={0} role="region" aria-label="Search results">
+        <div className="max-h-[42svh] overflow-y-auto p-4 lg:max-h-none lg:min-h-[140px] lg:flex-1" tabIndex={0} role="region" aria-label="Search results">
           {loading && !products ? (
             <Spinner />
           ) : error ? (
@@ -315,7 +329,7 @@ export default function SellingPoint() {
         {/* Stacked: customer and payment first, then the billing summary, in one column of full-width fields.
             It scrolls if the screen is short; otherwise it takes its own
             height and no more - the medicine list above it keeps the rest. */}
-        <div className={cx("shrink-0 content-start gap-3 overflow-y-auto border-t border-line bg-subtle/60 p-3 max-h-[45vh]", detailsOpen ? "grid" : "hidden")}>
+        <div className={cx("shrink-0 content-start gap-3 overflow-y-auto border-t border-line bg-subtle/60 p-3 max-h-[45vh] lg:max-h-[30vh]", detailsOpen ? "grid" : "hidden")}>
           <div className="space-y-2 rounded-2xl border border-line bg-card p-3 text-sm">
             <div className="text-[11px] font-bold uppercase tracking-wide text-muted">Customer & payment</div>
             <input className={inputCls} placeholder="Walk-in Customer" aria-label="Customer name" value={form.customer.name} onChange={setCust('name')} />
@@ -409,12 +423,9 @@ export default function SellingPoint() {
           </div>
         </div>
 
-        <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-line p-3 sm:grid-cols-4">
-          <Button onClick={reset} className="bg-sage0"><RotateCcw className="h-4 w-4" /> Reset</Button>
-          <Button variant="secondary" onClick={hold}><Pause className="h-4 w-4" /> Hold</Button>
-          <Button variant="secondary" loading={saving} onClick={() => save(false)}><Save className="h-4 w-4" /> Save</Button>
-          <Button loading={saving} onClick={() => save(true)}><Printer className="h-4 w-4" /> Save & Print</Button>
-        </div>
+        {/* From lg all four close the left column. Below it Reset and Hold sit here and Save / Save & Print are in the sticky bar after the cart. */}
+        <div className="hidden shrink-0 grid-cols-4 gap-2 border-t border-line p-3 lg:grid">{housekeepingButtons}{saveButtons}</div>
+        <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-line p-3 lg:hidden">{housekeepingButtons}</div>
       </section>
 
       {/* Cart + billing */}
@@ -444,39 +455,46 @@ export default function SellingPoint() {
           and what the browser tests locate a line by — swapping in <div>s would look identical and quietly break
           both. Only the widths changed.
         */}
-        <div className="min-h-[220px] flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="overflow-x-hidden lg:min-h-[220px] lg:flex-1 lg:overflow-y-auto">
           {cart.length === 0 ? (
             <EmptyState icon={ShoppingCart} title="No items added yet" hint="Search or press F1 to add medicine" />
           ) : (
-            <table className="w-full table-fixed text-left text-xs">
-              <colgroup>
+            /*
+              The explicit roles are there because below sm the table is laid out as one card per line (CSS grid, not table layout) and a
+              browser may drop table semantics from an element whose display is changed. They also keep the headers for screen readers
+              while the visual header row is hidden. Touch sizes: 40px controls below lg, the old compact ones from lg, where the cart is
+              a 420px column and every pixel is spoken for.
+            */
+            <table role="table" className="w-full table-fixed text-left text-xs max-sm:block">
+              <colgroup className="max-sm:hidden">
                 {/* The medicine name takes whatever the numbers do not, so nothing has to scroll sideways. */}
                 <col />
                 <col className="w-[64px]" />
                 <col className="w-[56px]" />
-                <col className="w-[104px]" />
+                <col className="w-[150px] lg:w-[104px]" />
                 <col className="w-[68px]" />
-                <col className="w-[36px]" />
+                <col className="w-[48px] lg:w-[36px]" />
               </colgroup>
-              <thead className="sticky top-0 z-10 bg-card text-[10px] uppercase text-muted shadow-[0_1px_0_var(--line)]">
-                <tr>
+              <thead role="rowgroup" className="sticky top-0 z-10 bg-card text-[10px] uppercase text-muted shadow-[0_1px_0_var(--line)] max-sm:sr-only">
+                <tr role="row">
                   {['Item', 'Price', 'Disc%', 'Qty', 'Total', ''].map((h) => (
-                    <th key={h} className="px-2.5 py-2.5 font-semibold">{h}</th>
+                    <th key={h} role="columnheader" className="px-2.5 py-2.5 font-semibold">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody role="rowgroup" className="max-sm:block">
                 {cart.map((i) => (
-                  <tr key={i.medicineId} className="border-t border-line align-middle">
-                    <td className="px-2.5 py-2">
+                  <tr key={i.medicineId} role="row" className="border-t border-line align-middle max-sm:grid max-sm:grid-cols-[1fr_auto_auto_auto] max-sm:items-center max-sm:gap-x-2 max-sm:gap-y-2 max-sm:px-3 max-sm:py-3">
+                    <td role="cell" className="px-2.5 py-2 max-sm:col-span-3 max-sm:col-start-1 max-sm:row-start-1 max-sm:min-w-0 max-sm:p-0">
                       {/* title= so a name too long for the column is still readable on hover */}
                       <div className="truncate font-semibold" title={i.name}>{i.name}</div>
                       <div className="truncate text-muted">Batch {i.batchNo}</div>
                     </td>
-                    <td className="px-2.5 py-2 tabular-nums">{inr(i.price)}</td>
-                    <td className="px-2.5 py-2">
+                    <td role="cell" className="px-2.5 py-2 tabular-nums max-sm:col-start-1 max-sm:row-start-2 max-sm:p-0 max-sm:text-sm max-sm:text-muted">{inr(i.price)}</td>
+                    <td role="cell" className="px-2.5 py-2 max-sm:col-start-3 max-sm:row-start-2 max-sm:flex max-sm:items-center max-sm:gap-1 max-sm:p-0">
                       <input
                         type="number"
+                        inputMode="decimal"
                         min="0"
                         max="100"
                         aria-label={`Discount percent for ${i.name}`}
@@ -484,25 +502,27 @@ export default function SellingPoint() {
                         onChange={(e) => patch(i.medicineId, { discountPercent: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
                         // This column is only ~36px of input: the browser's own up/down arrows took most of it and clipped the number
                         // ("0" showed as a sliver). The value is typed, so the arrows go and the number is centred.
-                        className="w-full rounded-lg border border-line bg-card px-1 py-1 text-center tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        className="h-10 w-full rounded-lg border border-line bg-card px-1 py-1 text-center tabular-nums [appearance:textfield] max-sm:w-14 lg:h-auto [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                       />
+                      <span aria-hidden="true" className="text-muted sm:hidden">%</span>
                     </td>
-                    <td className="px-2.5 py-2">
+                    <td role="cell" className="px-2.5 py-2 max-sm:col-start-2 max-sm:row-start-2 max-sm:p-0">
                       <div className="flex items-center gap-1">
-                        <button aria-label="Decrease quantity" onClick={() => setQty(i, i.quantity - 1)} className="shrink-0 rounded-md border border-line p-1"><Minus className="h-3 w-3" /></button>
+                        <button aria-label="Decrease quantity" onClick={() => setQty(i, i.quantity - 1)} className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-line lg:h-auto lg:w-auto lg:p-1"><Minus className="h-4 w-4 lg:h-3 lg:w-3" /></button>
                         <input
                           type="number"
+                          inputMode="numeric"
                           aria-label={`Quantity for ${i.name}`}
                           value={i.quantity}
                           onChange={(e) => setQty(i, e.target.value)}
-                          className="w-full min-w-0 rounded-md border border-line bg-card py-1 text-center"
+                          className="h-10 w-full min-w-0 rounded-md border border-line bg-card py-1 text-center max-sm:w-14 lg:h-auto"
                         />
-                        <button aria-label="Increase quantity" onClick={() => setQty(i, i.quantity + 1)} className="shrink-0 rounded-md border border-line p-1"><Plus className="h-3 w-3" /></button>
+                        <button aria-label="Increase quantity" onClick={() => setQty(i, i.quantity + 1)} className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-line lg:h-auto lg:w-auto lg:p-1"><Plus className="h-4 w-4 lg:h-3 lg:w-3" /></button>
                       </div>
                     </td>
-                    <td className="px-2.5 py-2 font-semibold tabular-nums">{inr(i.price * i.quantity * (1 - i.discountPercent / 100))}</td>
-                    <td className="px-1.5">
-                      <button aria-label={`Remove ${i.name}`} onClick={() => setCart((c) => c.filter((x) => x.medicineId !== i.medicineId))} className="rounded-md p-1 text-danger hover:bg-danger-soft"><Trash2 className="h-4 w-4" /></button>
+                    <td role="cell" className="px-2.5 py-2 font-semibold tabular-nums max-sm:col-start-4 max-sm:row-start-1 max-sm:p-0 max-sm:text-right max-sm:text-sm">{inr(i.price * i.quantity * (1 - i.discountPercent / 100))}</td>
+                    <td role="cell" className="px-1.5 max-sm:col-start-4 max-sm:row-start-2 max-sm:p-0">
+                      <button aria-label={`Remove ${i.name}`} onClick={() => setCart((c) => c.filter((x) => x.medicineId !== i.medicineId))} className="grid h-10 w-10 place-items-center rounded-md text-danger hover:bg-danger-soft lg:h-auto lg:w-auto lg:p-1"><Trash2 className="h-4 w-4" /></button>
                     </td>
                   </tr>
                 ))}
@@ -512,6 +532,20 @@ export default function SellingPoint() {
         </div>
 
       </aside>
+
+      {/*
+        Below lg the page is one tall column that scrolls inside <main>, so a row of buttons at the end of the billing block can
+        end up under the cart or off-screen. This bar sticks to the bottom of the scrolling area instead: Save is always on screen,
+        and it sits above the on-screen keyboard because it follows the (resized) viewport. It is last in the flow, so at the end of
+        the page it covers nothing.
+      */}
+      <div
+        className="sticky bottom-0 z-20 grid grid-cols-2 gap-2 border-t border-line bg-card p-3 shadow-[0_-4px_16px_rgba(23,40,33,0.08)] lg:hidden"
+        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+        data-testid="pos-actions"
+      >
+        {saveButtons}
+      </div>
 
       {showHeld && (
         <Modal title="Held bills" onClose={() => setShowHeld(false)}>

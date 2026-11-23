@@ -52,11 +52,13 @@ function heroStage() {
   const pad = parseFloat(getComputedStyle(el).paddingTop) || 0;
   if (pad < 96) return null;
   const top = Math.max(HEADER, el.getBoundingClientRect().top + window.scrollY);
-  const centre = top + pad / 2;
+  // The capsule is tilted, turned in perspective and wears an orbit ring, and it bobs by +-2% of the viewport height, so what you SEE is
+  // about 1.15x the stage's share of it. Measured on the live page: at 64% of the stage, centred, the ring's lower edge reached 4px
+  // into the eyebrow at 390 and 11px at 768 (and the capsule's top was clipped by the sticky header on a tablet). At 43% of the stage, dead centre,
+  // it clears the header and the eyebrow at every phone and tablet height measured (over a dozen frames each: it bobs and turns).
+  const centre = top + pad * 0.5;
   const H = window.innerHeight;
-  // A tilted capsule is about 1.1x its height tall, and it bobs by +-2% of the viewport height. At 64% of the stage
-  // that still leaves clear air above (the sticky header) and below (the eyebrow) at every phone height.
-  return { x: 0, y: 1 - (2 * centre) / H, s: Math.min(0.3, (pad * 0.64) / H) };
+  return { x: 0, y: 1 - (2 * centre) / H, s: Math.min(0.3, (pad * 0.43) / H) };
 }
 
 /** The pose list for the current breakpoint, with every `at` resolved to a scrollY. */

@@ -170,10 +170,20 @@ export function FormField({ label, error, hint, required, children, className })
 }
 export const Field = FormField;
 
+/**
+ * Which on-screen keypad a number field should raise. A whole-number field that cannot go negative gets the digit pad; one that allows
+ * fractions gets the decimal pad. A field that can be negative (a stock adjustment: -3) is left alone, because those keypads have no minus.
+ */
+export function keypadFor({ type, min, step, inputMode }) {
+  if (inputMode || type !== 'number') return inputMode;
+  if (min === undefined || Number(min) < 0) return undefined;
+  return Number(step) === 1 ? 'numeric' : 'decimal';
+}
+
 export function Input({ label, error, hint, required, className, inputClassName, ...p }) {
   return (
     <FormField label={label} error={error} hint={hint} required={required} className={className}>
-      {(a) => <input {...a} required={required} {...p} className={cx(inputCls, error && 'border-danger', inputClassName)} />}
+      {(a) => <input {...a} required={required} inputMode={keypadFor(p)} {...p} className={cx(inputCls, error && 'border-danger', inputClassName)} />}
     </FormField>
   );
 }
