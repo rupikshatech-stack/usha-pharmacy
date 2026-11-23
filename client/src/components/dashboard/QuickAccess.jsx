@@ -1,15 +1,15 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, BarChart3, FileText, Pill, Undo2 } from 'lucide-react';
-import { Badge, Card } from '../common/ui';
+import { Card } from '../common/ui';
 
 const tiles = [
   { to: '/invoices', title: 'Invoices', hint: 'Transaction history', icon: FileText },
   { to: '/inventory', title: 'Inventory', hint: 'Manage stock levels', icon: Pill },
-  { to: '/sales-returns', title: 'Sales Returns', hint: 'Customer refunds', icon: Undo2, soon: true },
-  { to: '/reports', title: 'Reports', hint: 'Daily transactions', icon: BarChart3, soon: true },
+  { to: '/sales-returns', title: 'Sales Returns', hint: 'Customer refunds', icon: Undo2 },
+  { to: '/analytics', title: 'Reports', hint: 'Sales, GST and stock reports', icon: BarChart3 },
 ];
 
-/** Shortcuts to key modules. Modules that aren't built yet are labelled "Coming soon" and open a clear placeholder page. */
+/** Shortcuts to key modules. Every tile opens a built page. */
 export default function QuickAccess() {
   return (
     <Card className="p-5">
@@ -28,7 +28,6 @@ export default function QuickAccess() {
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                 <span className="text-sm font-semibold">{t.title}</span>
-                {t.soon && <Badge tone="warning">Coming soon</Badge>}
               </span>
               <span className="block truncate text-xs text-muted">{t.hint}</span>
             </span>
