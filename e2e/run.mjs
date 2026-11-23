@@ -192,7 +192,11 @@ console.log('\nLogin and session');
   await check('an unauthenticated visitor is sent to login from every app page', async () => {
     for (const [, url] of PAGES) {
       await page.goto(`${BASE}${url}`);
-      await page.waitForURL('**/login', { timeout: 25000 }); // the first visit compiles the page on a cold dev server
+      // the first visit compiles the page on a cold dev server. If a page does not redirect, say WHICH one and what it shows instead.
+      await page.waitForURL('**/login', { timeout: 25000 }).catch(async (e) => {
+        const shown = (await page.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 140);
+        throw new Error(`${url} did not redirect to /login: the browser is at ${new URL(page.url()).pathname} and shows "${shown}" (${String(e.message).split('\n')[0]})`);
+      });
     }
   });
   await ctx.storageState({ path: path.join(SHOTS, 'noop.json') }).catch(() => {});
