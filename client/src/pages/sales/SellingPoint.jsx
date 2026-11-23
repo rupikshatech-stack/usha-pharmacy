@@ -4,11 +4,8 @@ import toast from 'react-hot-toast';
 import { invoiceService } from '../../services/invoiceService';
 import { inr, newIdempotencyKey } from '../../utils/format';
 import { cartBill } from '../../utils/cartBill';
-import { roundOffFor } from '../../utils/billMath';
 import { useFetch, useDebounced } from '../../hooks/useFetch';
 import { printInvoice } from '../../utils/printInvoice';
-import { useAuth } from '../../context/AuthContext';
-import { userCan } from '../../components/layout/nav';
 import { Button, EmptyState, ErrorState, Modal, Spinner, cx, inputCls } from '../../components/common/ui';
 
 const HELD_KEY = 'usha:held-bills';
@@ -37,14 +34,11 @@ const Shortcut = ({ k, label }) => (
 );
 
 export default function SellingPoint() {
-  const { user } = useAuth();
-  // The seller's state (the first two digits of its GSTIN) decides CGST+SGST versus IGST in this PREVIEW. /organization needs
-  // `settings:read`, which a billing-only role does not have: asking would only 403, so it is not asked. Such a user previews as
-  // "same state" (the server still works out the SAVED invoice from the organization's own GSTIN). KNOWN LIMITATION, same root
-  // cause as printInvoice falling back to the bare name: the till has no read-only source for the seller's details.
-  const canReadOrg = userCan(user, 'settings:read');
-  const org = useFetch('/organization', undefined, { enabled: canReadOrg });
-  const orgState = (org.data?.gstin || '').slice(0, 2); // the first two digits of a GSTIN are the state
+  // What the PREVIEW needs from the organization before any invoice exists: the seller's state (the first two digits of its GSTIN, which
+  // decides CGST+SGST versus IGST) and whether the bill is rounded. It comes from /pos/context, open to anyone who can sell, so it does not
+  // depend on `settings:read` (a cashier usually has none): the preview now agrees with the invoice the server saves for every user.
+  const ctx = useFetch('/pos/context');
+  const orgState = ctx.data?.sellerState || '';
   const [search, setSearch] = useState('');  const q = useDebounced(search, 250);
   const { data: products, loading, error, reload } = useFetch('/pos/products', { q });
 
@@ -99,7 +93,7 @@ export default function SellingPoint() {
   };
 
   // the same arithmetic the server will apply when the bill is saved (prices are GST-inclusive, so the tax is split out of them, never added on)
-  const roundOff = useMemo(() => roundOffFor(org.data?.settings), [org.data]);
+  const roundOff = ctx.data?.roundOff ?? false;
   const totals = useMemo(
     () =>
       cartBill({
@@ -161,7 +155,7 @@ export default function SellingPoint() {
         if (keyRef.current.signature !== signature) keyRef.current = { signature, key: newIdempotencyKey() };
         const inv = await invoiceService.create({ ...payload, idempotencyKey: keyRef.current.key });
         toast.success(`Invoice ${inv.invoiceNo} saved — ${inr(inv.total)}`);
-        if (print && !(await printInvoice(inv, user.organization?.name))) toast.error('Allow pop-ups to print');
+        if (print && !(await printInvoice(inv))) toast.error('Allow pop-ups to print');
         reset();
         reload();
       } catch (e) {
@@ -171,7 +165,7 @@ export default function SellingPoint() {
         setSaving(false);
       }
     },
-    [cart, form, reset, reload, user],
+    [cart, form, reset, reload],
   );
 
   // Keyboard shortcuts (refs to latest handlers so the listener never goes stale).

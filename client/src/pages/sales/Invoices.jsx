@@ -5,14 +5,12 @@ import { invoiceService } from '../../services/invoiceService';
 import { dateFmt, inr } from '../../utils/format';
 import { useDebounced, useFetch } from '../../hooks/useFetch';
 import { printInvoice } from '../../utils/printInvoice';
-import { useAuth } from '../../context/AuthContext';
 import { Badge, Button, Card, EmptyState, ErrorState, IconButton, Modal, PageHeader, Pagination, SearchInput } from '../../components/common/ui';
 import { DataTable } from '../../components/common/DataTable';
 
 const LIMIT = 10;
 
 export default function Invoices() {
-  const { user } = useAuth();
   // The Daily Transaction Report links here with ?search=<reference>, so a row opens its own document. Read once.
   const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('search') || '');
   const [page, setPage] = useState(1);
@@ -88,7 +86,11 @@ export default function Invoices() {
           onClose={() => setOpen(null)}
           footer={
             <Button variant="secondary" onClick={async () => {
-              if (!(await printInvoice(open, user.organization?.name))) toast.error('Allow pop-ups to print');
+              try {
+                if (!(await printInvoice(open))) toast.error('Allow pop-ups to print');
+              } catch (e) {
+                toast.error(`Could not load the invoice to print: ${e.message}`);
+              }
             }}>
               <Printer className="h-4 w-4" /> Print
             </Button>
