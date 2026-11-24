@@ -119,7 +119,7 @@
 /* Glass buttons for the header, matching the liquid nav pill: blur, an inner rim light and a top sheen. CSS only, so the
    header carries one WebGL context (the pill's) rather than one per button. */
 .lp-glass-btn {
-  position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  position: relative; isolation: isolate; overflow: hidden; /* clips the sheen to the button's own outline */ display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
   height: 2.75rem; padding: 0 1.25rem; border-radius: 999px; white-space: nowrap;
   font-size: 0.875rem; font-weight: 600; letter-spacing: -0.01em; line-height: 1; text-decoration: none; cursor: pointer;
   color: #f1f7ff; background: rgba(255, 255, 255, 0.07);
