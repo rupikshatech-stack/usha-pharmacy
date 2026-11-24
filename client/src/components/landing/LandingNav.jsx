@@ -14,8 +14,10 @@ const LINKS = [
 
 /** Sticky site header. Its 5rem height is also the pin offset used by the product showcase. */
 export default function LandingNav() {
+  // Solid white on purpose: the logo is a JPG on a white ground, so on any tinted bar it shows as a pasted-on box.
+  // On white it merges with the bar. The soft shadow, not a tint, is what lifts the bar off the page.
   return (
-    <header className="sticky top-0 z-40 h-20 border-b border-ink/10 bg-[color-mix(in_srgb,var(--app)_95%,transparent)]">
+    <header className="sticky top-0 z-40 h-20 border-b border-ink/10 bg-white shadow-[0_10px_28px_-18px_rgba(17,34,29,0.28)]">
       {/* Full width rather than the page's centred column, so the logo sits in the left corner and the button in the
           right. From md up it is a 1fr / auto / 1fr grid, which keeps the links truly centred however wide the logo is. */}
       <nav aria-label="Main" className="flex h-full items-center justify-between gap-4 px-3 sm:px-5 md:grid md:grid-cols-[1fr_auto_1fr]">
