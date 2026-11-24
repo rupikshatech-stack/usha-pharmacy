@@ -5,6 +5,8 @@ import { DEFAULT_TIMEZONE, isValidTimezone } from '../utils/tz.js';
 
 export const REPORTING_PERIODS = ['fiscal_year', 'calendar_year', 'all_time'];
 export const BUSINESS_CATEGORIES = ['retail', 'wholesale', 'both', 'hospital'];
+/** A pharmacy is either trading or shut out of its own workspace; there is no third state and no soft delete. */
+export const ORGANIZATION_STATUSES = ['active', 'suspended'];
 export const BUSINESS_CATEGORY_LABEL = { retail: 'Retail pharmacy', wholesale: 'Wholesale / distribution', both: 'Retail and wholesale', hospital: 'Hospital pharmacy' };
 export const GST_REGISTRATION_TYPES = ['regular', 'composition', 'unregistered'];
 /** The drug licences a pharmacy or wholesaler actually holds under the Drugs and Cosmetics Rules. */
@@ -141,7 +143,7 @@ const organizationSchema = new Schema(
       pincode: { type: String, trim: true, default: '' },
       country: { type: String, trim: true, default: 'India' },
     },
-    status: { type: String, enum: ['active', 'suspended'], default: 'active' },
+    status: { type: String, enum: ORGANIZATION_STATUSES, default: 'active' },
 
     // Timestamps are always stored in UTC; this IANA zone decides what a "day" or "month" means in
     // reports and how times are displayed.

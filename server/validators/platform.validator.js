@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BUSINESS_CATEGORIES } from '../models/Organization.js';
+import { BUSINESS_CATEGORIES, ORGANIZATION_STATUSES } from '../models/Organization.js';
 
 /**
  * What may be sent when onboarding a pharmacy.
@@ -40,6 +40,9 @@ export const createOrganizationSchema = z.object({
 
 export const organizationListQuery = z.object({
   search: z.string().trim().max(100).optional(),
+  // Narrowing the list is a reading convenience, so an unknown status is a mistake worth reporting rather than
+  // quietly ignoring: a filter that silently does nothing looks exactly like data that is not there.
+  status: z.enum(ORGANIZATION_STATUSES).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

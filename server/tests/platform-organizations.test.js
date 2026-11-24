@@ -1,6 +1,7 @@
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { PASSWORD, startHarness } from './helpers/harness.js';
+import { Organization } from '../models/index.js';
 import { ROLE_PERMISSIONS, SYSTEM_ROLES } from '../config/permissions.js';
 import { temporaryPassword } from '../services/platformOrganizations.service.js';
 import { passwordProblem } from '../utils/password.js';
@@ -222,5 +223,40 @@ describe('who may onboard a pharmacy', () => {
     const { client } = await h.makeTenant('List Refused Pharmacy');
     assert.equal((await client.get('/platform/organizations')).status, 403);
     assert.equal((await h.client().get('/platform/organizations')).status, 401);
+  });
+});
+
+describe('GET /platform/organizations', () => {
+  it('narrows the list to one status, and refuses a status that is not one', async () => {
+    const { c } = await platformClient();
+    const trading = (await c.post('/platform/organizations', newPharmacy())).data.organization.id;
+    const shut = (await c.post('/platform/organizations', newPharmacy())).data.organization.id;
+    // Suspension has no endpoint by design, so the fixture does what an operator would do to the record itself.
+    await Organization.updateOne({ _id: shut }, { status: 'suspended' });
+
+    const active = await c.get('/platform/organizations?status=active&limit=100');
+    assert.equal(active.status, 200);
+    const activeIds = active.data.items.map((o) => o.id);
+    assert.ok(activeIds.includes(trading), 'the trading pharmacy is listed');
+    assert.ok(!activeIds.includes(shut), 'the suspended one is filtered out');
+
+    const suspended = await c.get('/platform/organizations?status=suspended&limit=100');
+    assert.ok(suspended.data.items.some((o) => o.id === shut), 'and is found under its own status');
+    assert.ok(suspended.data.items.every((o) => o.status === 'suspended'), 'which returns nothing else');
+
+    assert.equal(active.data.total >= 1, true, 'the total counts the filtered set, not every pharmacy');
+    assert.equal((await c.get('/platform/organizations?status=closed')).status, 400, 'an unknown status is reported, not ignored');
+  });
+
+  it('combines the status filter with the search, rather than one replacing the other', async () => {
+    const { c } = await platformClient();
+    const tag = `Filter${uniq()}`;
+    const wanted = (await c.post('/platform/organizations', newPharmacy({ name: `${tag} Trading` }))).data.organization.id;
+    const other = (await c.post('/platform/organizations', newPharmacy({ name: `${tag} Shut` }))).data.organization.id;
+    await Organization.updateOne({ _id: other }, { status: 'suspended' });
+
+    const r = await c.get(`/platform/organizations?status=active&search=${tag}`);
+    assert.deepEqual(r.data.items.map((o) => o.id), [wanted], 'only the one matching both');
+    assert.equal(r.data.total, 1);
   });
 });

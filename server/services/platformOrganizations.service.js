@@ -58,8 +58,9 @@ const present = (org, adminCount) => ({
  * The pharmacies on this installation. It lists names and contact details so an operator can see what they have
  * onboarded and avoid creating a duplicate — never anything from inside an organization.
  */
-export async function listOrganizations({ search, page = 1, limit = 20 } = {}) {
+export async function listOrganizations({ search, status, page = 1, limit = 20 } = {}) {
   const filter = {};
+  if (status) filter.status = status;
   if (search) {
     const rx = new RegExp(escapeRegex(search), 'i');
     filter.$or = [{ name: rx }, { slug: rx }, { email: rx }, { 'owner.email': rx }];

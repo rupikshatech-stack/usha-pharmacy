@@ -1,13 +1,40 @@
 import { useRef, useState } from 'react';
-import { Building2, Plus, TriangleAlert, UserRound } from 'lucide-react';
-import { Button, Card, Input, Select } from '../../components/common/ui';
+import { Building2, Info, Plus, TriangleAlert, UserRound } from 'lucide-react';
+import { Button, Card, Input, Select, cx } from '../../components/common/ui';
 import { platformService } from '../../services/platformService';
 import { BUSINESS_CATEGORIES, at, blankOrganization, put, serverErrors, toBody, validateOrganization } from '../../utils/platformForm';
+import { exactEmail, exactName, useSimilarOrganizations } from './useSimilarOrganizations';
 import CredentialsHandover from './CredentialsHandover';
 import OrganizationDirectory from './OrganizationDirectory';
 
 /** One spelling addresses a field, its error and its summary link: "owner.email" -> "onb-owner-email". */
 const fid = (path) => `onb-${path.replace(/\./g, '-')}`;
+
+/**
+ * A remark under a field about what is already on the installation.
+ *
+ * It is not an error and does not use the error colours: nothing here is wrong yet, and the form will still
+ * send. "Show it" points the directory at what was found rather than describing it, because the operator's next
+ * question is always "which one?".
+ */
+function Note({ tone, onShow, children }) {
+  const warn = tone === 'warning';
+  return (
+    <p className={cx('mt-1.5 flex flex-wrap items-start gap-x-2 gap-y-1 rounded-lg px-2.5 py-1.5 text-xs', warn ? 'bg-warning-soft text-warning' : 'bg-subtle text-muted')}>
+      <span className="flex min-w-0 flex-1 items-start gap-1.5">
+        {warn ? <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+        <span className="min-w-0">{children}</span>
+      </span>
+      <button
+        type="button"
+        onClick={onShow}
+        className="shrink-0 cursor-pointer font-bold underline underline-offset-2 hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        Show it
+      </button>
+    </p>
+  );
+}
 
 /**
  * Onboarding a pharmacy: the form, and the directory of what is already here.
@@ -31,6 +58,35 @@ export default function NewOrganization() {
   const [created, setCreated] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
   const summaryRef = useRef(null);
+
+  // The directory's own controls live here, so the form can point it at a pharmacy it thinks is a duplicate.
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [page, setPage] = useState(1);
+  const [highlightId, setHighlightId] = useState(null);
+
+  const typedName = at(form, 'name');
+  const typedEmail = at(form, 'owner.email');
+  const nameLike = useSimilarOrganizations(typedName);
+  const emailLike = useSimilarOrganizations(typedEmail, { enabled: /.+@.+\..+/.test(typedEmail.trim()) });
+  const sameName = exactName(nameLike, typedName);
+  const sameEmail = exactEmail(emailLike, typedEmail);
+  const nearby = nameLike.filter((o) => o.id !== sameName?.id);
+
+  const showInDirectory = (term) => {
+    setSearch(term);
+    setStatus('');
+    setPage(1);
+  };
+
+  const onSearch = (v) => {
+    setSearch(v);
+    setPage(1);
+  };
+  const onStatus = (v) => {
+    setStatus(v);
+    setPage(1);
+  };
 
   // What the server said about a field outranks what we worked out ourselves: only it knows the name is taken.
   const errors = { ...validateOrganization(form), ...fromServer };
@@ -86,6 +142,11 @@ export default function NewOrganization() {
       setTouched({});
       setEdited({});
       setSubmitted(false);
+      // Clear whatever the directory was narrowed to, so the pharmacy just made is actually among what it shows.
+      setSearch('');
+      setStatus('');
+      setPage(1);
+      setHighlightId(data.organization.id);
       setReloadToken((n) => n + 1);
     } catch (err) {
       setFromServer(serverErrors(err.details));
@@ -147,7 +208,22 @@ export default function NewOrganization() {
                   <Building2 className="h-3.5 w-3.5" aria-hidden="true" /> The pharmacy
                 </legend>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Input {...field('name', 'Pharmacy name', { required: true, placeholder: 'e.g. Shree Medical Stores', maxLength: 150, autoFocus: true })} />
+                  <div>
+                    <Input {...field('name', 'Pharmacy name', { required: true, placeholder: 'e.g. Shree Medical Stores', maxLength: 150, autoFocus: true })} />
+                    {sameName ? (
+                      <Note tone="warning" onShow={() => showInDirectory(sameName.name)}>
+                        <strong className="font-bold">{sameName.name}</strong> is already on this installation. This name will be refused.
+                      </Note>
+                    ) : (
+                      nearby.length > 0 && (
+                        <Note tone="info" onShow={() => showInDirectory(typedName.trim())}>
+                          {nearby.length === 1 ? 'A similar name is already here: ' : `${nearby.length} similar names are already here: `}
+                          {nearby.slice(0, 2).map((o) => o.name).join(', ')}
+                          {nearby.length > 2 ? '…' : ''}
+                        </Note>
+                      )
+                    )}
+                  </div>
                   <Select id={fid('businessCategory')} label="Business category" value={form.businessCategory} onChange={set('businessCategory')}>
                     {BUSINESS_CATEGORIES.map(([v, l]) => (
                       <option key={v} value={v}>
@@ -177,14 +253,21 @@ export default function NewOrganization() {
                   <Input {...field('owner.lastName', 'Last name', { maxLength: 60 })} />
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Input
-                    {...field('owner.email', 'Email', {
-                      required: true,
-                      type: 'email',
-                      maxLength: 150,
-                      hint: 'They sign in with this. It must not already have an account here.',
-                    })}
-                  />
+                  <div>
+                    <Input
+                      {...field('owner.email', 'Email', {
+                        required: true,
+                        type: 'email',
+                        maxLength: 150,
+                        hint: 'They sign in with this. It must not already have an account here.',
+                      })}
+                    />
+                    {sameEmail && (
+                      <Note tone="warning" onShow={() => showInDirectory(sameEmail.name)}>
+                        This address already administers <strong className="font-bold">{sameEmail.name}</strong>. One address can belong to one account only.
+                      </Note>
+                    )}
+                  </div>
                   <Input {...field('owner.phone', 'Phone', { inputMode: 'tel', maxLength: 20 })} />
                 </div>
               </fieldset>
@@ -201,7 +284,17 @@ export default function NewOrganization() {
       </div>
 
       {/* Stays in view while the form is filled in, so a duplicate can be spotted without losing what was typed. */}
-      <OrganizationDirectory reloadToken={reloadToken} className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)]" />
+      <OrganizationDirectory
+        search={search}
+        onSearch={onSearch}
+        status={status}
+        onStatus={onStatus}
+        page={page}
+        onPage={setPage}
+        reloadToken={reloadToken}
+        highlightId={highlightId}
+        className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)]"
+      />
     </div>
   );
 }
