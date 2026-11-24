@@ -12,7 +12,7 @@ export default function HowItWorks() {
   const root = useRef(null);
   useRise(root);
   return (
-    <section id="how" ref={root} aria-labelledby="how-heading" className="scroll-mt-16">
+    <section id="how" ref={root} aria-labelledby="how-heading" className="scroll-mt-20">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:py-28">
         <div className="mx-auto max-w-3xl text-center">
           <p data-rise className="text-[12px] font-bold uppercase tracking-[0.2em] text-muted">How it works</p>

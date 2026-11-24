@@ -85,7 +85,7 @@ export default function LaptopStage() {
   const panels = still ? PANELS.slice(0, 1) : PANELS;
 
   return (
-    <section id="motion" ref={root} aria-labelledby="motion-heading" className="lp-stage scroll-mt-16">
+    <section id="motion" ref={root} aria-labelledby="motion-heading" className="lp-stage scroll-mt-20">
       <div className="lp-stage__glow" aria-hidden="true" />
       <div className="relative mx-auto max-w-6xl px-4 py-20 sm:py-28">
         <div className="mx-auto max-w-3xl text-center">

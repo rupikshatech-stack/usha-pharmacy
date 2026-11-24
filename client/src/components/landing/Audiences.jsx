@@ -44,7 +44,7 @@ export default function Audiences() {
 
   const tab = TABS[active];
   return (
-    <section id="who" ref={root} aria-labelledby="who-heading" className="scroll-mt-16">
+    <section id="who" ref={root} aria-labelledby="who-heading" className="scroll-mt-20">
       <div className="mx-auto max-w-6xl px-4 pb-20 sm:pb-32">
         <div className="mx-auto max-w-3xl text-center">
           <p data-rise className="text-[12px] font-bold uppercase tracking-[0.2em] text-muted">Who it’s for</p>

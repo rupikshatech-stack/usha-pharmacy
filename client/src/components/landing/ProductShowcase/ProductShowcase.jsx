@@ -80,8 +80,8 @@ function PinnedTour() {
           defaults: { ease: 'none' },
           scrollTrigger: {
             trigger: root,
-            start: 'top 64px', // clears the sticky site header
-            end: () => `+=${Math.round((window.innerHeight - 64) * N * (full ? 0.9 : 0.7))}`,
+            start: 'top 80px', // clears the sticky site header
+            end: () => `+=${Math.round((window.innerHeight - 80) * N * (full ? 0.9 : 0.7))}`,
             pin: true,
             scrub: 0.6,
             anticipatePin: 1,
@@ -119,7 +119,7 @@ function PinnedTour() {
 
   return (
     <div ref={stage} data-stage className="w-full">
-      <div className="mx-auto flex h-[calc(100svh-4rem)] max-w-[96rem] flex-col gap-4 px-6 pb-6 pt-4 lg:grid lg:grid-cols-[minmax(0,25rem)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-12 lg:px-12 lg:py-10">
+      <div className="mx-auto flex h-[calc(100svh-5rem)] max-w-[96rem] flex-col gap-4 px-6 pb-6 pt-4 lg:grid lg:grid-cols-[minmax(0,25rem)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-12 lg:px-12 lg:py-10">
         <div className="flex flex-col justify-center gap-6 lg:gap-8 lg:self-center">
           <div className="showcase-copy-stack">
             {SLIDES.map((s, i) => <Copy key={s.id} step={s} index={i} active={active} withHighlights />)}
@@ -194,7 +194,7 @@ export default function ProductShowcase() {
   const mode = useTourMode();
 
   return (
-    <section id="platform" aria-labelledby="showcase-heading" className="scroll-mt-16 border-y border-ink/10 bg-ink/[0.025]">
+    <section id="platform" aria-labelledby="showcase-heading" className="scroll-mt-20 border-y border-ink/10 bg-ink/[0.025]">
       <header className="mx-auto max-w-3xl px-4 pb-10 pt-20 text-center sm:pb-14 sm:pt-32">
         <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-muted">Explore the platform</p>
         <h2 id="showcase-heading" className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-[-0.03em] text-ink sm:text-6xl">

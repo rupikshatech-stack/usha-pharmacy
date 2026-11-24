@@ -15,7 +15,7 @@ export default function WhyThisExists() {
   const root = useRef(null);
   useRise(root);
   return (
-    <section id="why" ref={root} aria-labelledby="why-heading" className="scroll-mt-16">
+    <section id="why" ref={root} aria-labelledby="why-heading" className="scroll-mt-20">
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 sm:py-28 lg:grid-cols-2 lg:gap-20">
         <div>
           <p data-rise className="text-[12px] font-bold uppercase tracking-[0.2em] text-muted">Why this exists</p>
