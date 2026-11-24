@@ -29,8 +29,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!mustAsk) return;
     authService
-      .me()
+      .session()
       .then((d) => {
+        if (!d.user) throw new Error('not signed in'); // no session cookies: a stale hint, retired in the catch below
         setCsrfToken(d.csrfToken);
         setDisplayTimezone(d.user.organization?.timezone);
         setDisplayDateFormat(d.user.organization?.dateFormat);

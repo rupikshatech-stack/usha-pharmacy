@@ -35,6 +35,13 @@ export async function refresh(req, res) {
   res.json({ success: true, data: { user: await authService.presentUser(user, org), csrfToken } });
 }
 
+/** Answers GET /auth/session for a browser that holds neither the access nor the refresh cookie: nobody is signed in. */
+export function noSessionCookies(req, res, next) {
+  const hasAccess = Boolean(req.cookies?.[ACCESS_COOKIE]) || Boolean(req.headers.authorization?.startsWith('Bearer '));
+  if (hasAccess || req.cookies?.[REFRESH_COOKIE]) return next();
+  res.json({ success: true, data: { user: null, csrfToken: null } });
+}
+
 export async function me(req, res) {
   const org = req.tenant.organization;
   let csrfToken = req.cookies?.[CSRF_COOKIE];

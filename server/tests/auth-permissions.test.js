@@ -116,3 +116,21 @@ describe('the permissions a sign-in hands the browser', () => {
     assert.ok(client, 'admin client unused beyond setup');
   });
 });
+
+describe('GET /auth/session, the page\'s "who is signed in?" probe', () => {
+  it('answers 200 with no user when the browser holds no session cookie, instead of the 401 /auth/me gives', async () => {
+    const stranger = h.client();
+    assert.equal((await stranger.get('/auth/me')).status, 401);
+    const probe = await stranger.get('/auth/session');
+    assert.equal(probe.status, 200, JSON.stringify(probe.body));
+    assert.equal(probe.data.user, null);
+  });
+
+  it('returns the same user as /auth/me for someone signed in', async () => {
+    const admin = await tenantWithRoles('Session Probe Pharmacy');
+    const probe = await admin.client.get('/auth/session');
+    const me = await admin.client.get('/auth/me');
+    assert.equal(probe.status, 200);
+    assert.deepEqual(probe.data.user, me.data.user);
+  });
+});

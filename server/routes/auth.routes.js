@@ -29,6 +29,10 @@ router.post('/login', loginLimiter, validate(loginSchema), h(ctrl.login));
 router.post('/refresh', refreshLimiter, h(ctrl.refresh));
 router.post('/logout', h(ctrl.logout));
 router.get('/me', authenticateAllowPending, requireTenant, h(ctrl.me));
+// The page's "who is signed in?" probe. A browser with no session cookie at all gets a plain 200 `{ user: null }`
+// instead of the 401 /me would give, so a signed-out visitor sees no red errors in the console. Anyone holding a
+// cookie takes exactly the /me path, including the silent refresh when the access token has merely expired.
+router.get('/session', ctrl.noSessionCookies, authenticateAllowPending, requireTenant, h(ctrl.me));
 router.post('/change-password', passwordLimiter, authenticateAllowPending, requireTenant, validate(changePasswordSchema), h(ctrl.changePassword));
 
 export default router;
