@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { logoProblem } from './logoFile.js';
+import { fitSize, logoProblem } from './logoFile.js';
 
 const file = (over = {}) => ({ name: 'logo.png', type: 'image/png', size: 1024, ...over });
 
@@ -32,4 +32,20 @@ test('refuses an empty file and one that is too large', () => {
 test('asks for a file when there is none', () => {
   assert.equal(logoProblem(null), 'Choose an image');
   assert.equal(logoProblem(undefined), 'Choose an image');
+});
+
+test('shrinks a large logo by its longest side and keeps its shape, with no crop', () => {
+  // the wide wordmark that was being cut to a square: 2.2 : 1 must stay 2.2 : 1
+  assert.deepEqual(fitSize(1760, 800), { width: 800, height: 364, scaled: true });
+  assert.deepEqual(fitSize(4000, 1000), { width: 800, height: 200, scaled: true });
+  assert.deepEqual(fitSize(1000, 3000), { width: 267, height: 800, scaled: true });
+});
+
+test('leaves a logo that is already small exactly as it is, and never scales up', () => {
+  assert.deepEqual(fitSize(300, 140), { width: 300, height: 140, scaled: false });
+  assert.deepEqual(fitSize(800, 800), { width: 800, height: 800, scaled: false });
+});
+
+test('does not divide by zero on a degenerate size', () => {
+  assert.deepEqual(fitSize(0, 0), { width: 0, height: 0, scaled: false });
 });

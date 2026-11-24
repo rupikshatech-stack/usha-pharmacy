@@ -3,30 +3,36 @@ import { ImageOff, Loader2, Replace, Trash2, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { settingsService } from '../../services/settingsService';
 import { Button, cx } from '../common/ui';
-import { LOGO_MAX_MB as MAX_MB, logoProblem } from '../../utils/logoFile';
+import { LOGO_MAX_MB as MAX_MB, fitSize, logoProblem } from '../../utils/logoFile';
 
 /**
- * Crops to a centred square and scales down, in the browser, before anything is uploaded.
+ * Scales a large logo down, in the browser, before anything is uploaded. It never crops.
  *
- * The logo is printed in a small square on invoices and shown in the sidebar, so a 4000-pixel-wide banner is both
- * the wrong shape and far more bytes than the job needs. Doing it here means the file that leaves the machine is
- * the file that will be used — there is no second, hidden version on the server that could drift from the preview.
+ * A 4000-pixel-wide original is far more bytes than a logo printed at a few centimetres needs, so the longest side
+ * is capped. The shape is kept exactly: most wordmarks are wide, and cutting a square out of the middle of one
+ * prints half the name on every invoice. A logo that is already small goes up untouched. Doing it here means the
+ * file that leaves the machine is the file that will be used: there is no second, hidden version on the server.
  * If anything about the canvas fails, the original file is uploaded unchanged rather than nothing at all.
  */
-async function cropToSquare(file, size = 512) {
+export async function fitWithin(file) {
   try {
     const bitmap = await createImageBitmap(file);
-    const side = Math.min(bitmap.width, bitmap.height);
+    const { width, height, scaled } = fitSize(bitmap.width, bitmap.height);
+    if (!scaled) {
+      bitmap.close?.();
+      return file;
+    }
     const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext('2d');
     // PNG and WebP keep transparency; a JPEG cannot, so it gets white rather than black behind it.
     if (file.type === 'image/jpeg') {
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, size, size);
+      ctx.fillRect(0, 0, width, height);
     }
-    ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close?.();
     const type = file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png';
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, 0.92));
@@ -53,8 +59,8 @@ export default function LogoUpload({ value, onChange, disabled }) {
     if (problem) return;
     setBusy(true);
     try {
-      const squared = await cropToSquare(file);
-      const saved = await settingsService.uploadLogo(squared);
+      const prepared = await fitWithin(file);
+      const saved = await settingsService.uploadLogo(prepared);
       onChange(saved.url);
       toast.success('Logo saved. It is live on invoices and in the sidebar now.');
     } catch (e) {
@@ -104,7 +110,7 @@ export default function LogoUpload({ value, onChange, disabled }) {
           </div>
         ) : value ? (
           <div className="flex flex-col items-center gap-3">
-            <img src={value} alt="Store logo" className="h-24 w-24 rounded-xl border border-line bg-card object-contain" />
+            <img src={value} alt="Store logo" className="h-24 w-auto max-w-[16rem] rounded-xl border border-line bg-card object-contain" />
             <div className="flex gap-2">
               <Button variant="secondary" size="sm" onClick={() => inputRef.current?.click()} disabled={disabled}>
                 <Replace className="h-3.5 w-3.5" aria-hidden="true" /> Replace
@@ -120,7 +126,7 @@ export default function LogoUpload({ value, onChange, disabled }) {
               <Upload className="h-5 w-5" aria-hidden="true" />
             </span>
             <span className="text-sm font-semibold text-ink">Click to browse, or drop a file</span>
-            <span className="text-[11px]">PNG, JPG or WebP · up to {MAX_MB} MB · cropped to a square</span>
+            <span className="text-[11px]">PNG, JPG or WebP · up to {MAX_MB} MB · shown whole, never cropped</span>
           </button>
         )}
 

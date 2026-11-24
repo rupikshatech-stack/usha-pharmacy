@@ -21,3 +21,17 @@ export function logoProblem(file, maxMB = LOGO_MAX_MB) {
   if (file.size > maxMB * 1048576) return `Use a file up to ${maxMB} MB`;
   return '';
 }
+
+/** The longest side a stored logo needs: sharp at print size on an invoice, without carrying a 4000-pixel original. */
+export const LOGO_MAX_SIDE = 800;
+
+/**
+ * The size to scale a logo to so its longest side is at most `max`, keeping its shape. Never scales up, and never
+ * crops: a wide wordmark has to stay wide, or the invoice prints half of it.
+ */
+export function fitSize(width, height, max = LOGO_MAX_SIDE) {
+  const longest = Math.max(width, height);
+  if (!longest || longest <= max) return { width, height, scaled: false };
+  const k = max / longest;
+  return { width: Math.max(1, Math.round(width * k)), height: Math.max(1, Math.round(height * k)), scaled: true };
+}
