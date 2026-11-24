@@ -6,7 +6,7 @@ export const cx = (...c) => c.filter(Boolean).join(' ');
 /* ---------- Brand ---------- */
 
 /**
- * Brand logo from /logo.jpg. The artwork is dark-on-light, so on dark surfaces it sits on a
+ * Brand logo from /logo/logo.jpg. The artwork is dark-on-light, so on dark surfaces it sits on a
  * white tile. Falls back to a text mark if the file is missing.
  */
 export function Logo({ onDark = false, className }) {
@@ -16,7 +16,7 @@ export function Logo({ onDark = false, className }) {
     <div className={cx('rounded-lg bg-white', onDark && 'px-2.5 py-2', className)}>
       <img
         src="/logo/logo.jpg"
-        alt="Logic Centra"
+        alt="Usha Pharmacy"
         onError={() => setFailed(true)}
         className="block h-auto w-full select-none mix-blend-multiply"
         draggable="false"

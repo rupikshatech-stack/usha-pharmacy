@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Pill } from 'lucide-react';
 
 export const ctaCls =
   'lp-btn inline-flex h-12 items-center justify-center gap-2 rounded-xl px-6 text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-primary/60';
@@ -18,9 +17,8 @@ export default function LandingNav() {
   return (
     <header className="sticky top-0 z-40 h-16 border-b border-ink/10 bg-[color-mix(in_srgb,var(--app)_95%,transparent)]">
       <nav aria-label="Main" className="mx-auto flex h-full max-w-6xl items-center justify-between gap-4 px-4">
-        <Link to="/" className="flex items-center gap-2 text-base font-extrabold tracking-tight text-ink">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-ink/10 text-ink"><Pill size={16} aria-hidden="true" /></span>
-          Usha Pharmacy
+        <Link to="/" aria-label="Usha Pharmacy, home" className="rounded-lg bg-white px-2 py-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
+          <img src="/logo/logo.jpg" alt="Usha Pharmacy" className="block h-9 w-auto select-none mix-blend-multiply" draggable="false" />
         </Link>
         <ul className="hidden items-center gap-7 md:flex">
           {LINKS.map(([href, label]) => (

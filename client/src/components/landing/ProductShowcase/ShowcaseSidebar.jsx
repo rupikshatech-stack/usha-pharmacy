@@ -1,4 +1,4 @@
-import { Pill, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { cx } from '../../common/ui';
 import { SLIDES } from './slides';
 
@@ -20,14 +20,8 @@ export default function ShowcaseSidebar({ active }) {
 
   return (
     <aside className="flex w-44 shrink-0 flex-col bg-side p-3 text-white">
-      <div className="mb-4 flex items-center gap-2 px-1.5">
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/15">
-          <Pill size={16} aria-hidden="true" />
-        </span>
-        <span className="leading-tight">
-          <span className="block text-[13px] font-bold">Usha Pharmacy</span>
-          <span className="block text-[10px] text-white/80">Retail &amp; wholesale</span>
-        </span>
+      <div className="mb-4 rounded-lg bg-white px-2 py-1.5">
+        <img src="/logo/logo.jpg" alt="Usha Pharmacy" className="block h-auto w-full select-none mix-blend-multiply" draggable="false" />
       </div>
       <nav className="space-y-0.5">
         {SLIDES.map((s, i) => item(s.nav, s.icon, i === active))}

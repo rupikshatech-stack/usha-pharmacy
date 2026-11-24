@@ -28,7 +28,9 @@ export default function ClosingCta() {
       <footer className="lp-forest-zone border-t border-ink/10">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <span className="text-base font-extrabold tracking-tight text-ink">Usha Pharmacy</span>
+            <span className="inline-block rounded-lg bg-white px-2.5 py-1.5">
+              <img src="/logo/logo.jpg" alt="Usha Pharmacy" className="block h-10 w-auto select-none mix-blend-multiply" draggable="false" />
+            </span>
             <p className="mt-2 max-w-xs text-[12px] leading-relaxed text-muted">
               Billing, stock, batches and reporting for pharmacies and wholesalers.
             </p>

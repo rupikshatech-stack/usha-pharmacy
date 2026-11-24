@@ -28,7 +28,7 @@ describe('the fallback to the app shell', () => {
   });
 
   it('does not catch anything that names a file, so a missing asset is a real 404 rather than HTML', () => {
-    for (const p of ['/assets/index-abc123.js', '/assets/PharmacyScene3D-old.js', '/assets/nope.css', '/robots.txt', '/sitemap.xml', '/favicon.ico', '/favicon.svg', '/landing/layers-bg.jpg', '/manifest.webmanifest']) {
+    for (const p of ['/assets/index-abc123.js', '/assets/PharmacyScene3D-old.js', '/assets/nope.css', '/robots.txt', '/sitemap.xml', '/favicon.ico', '/favicon.png', '/landing/layers-bg.jpg', '/manifest.webmanifest']) {
       assert.equal(matchesFallback(p), false, `${p} must NOT fall back to the app shell`);
     }
   });
@@ -88,7 +88,7 @@ describe('caching', () => {
   });
 
   it('never applies it to anything that is not hashed: the page, the API, or the files copied from /public', () => {
-    for (const p of ['/', '/login', '/dashboard', '/api/health', '/favicon.svg', '/logo/logo.jpg', '/icons.svg']) assert.equal(matches(p), false, `${p} must keep revalidating`);
+    for (const p of ['/', '/login', '/dashboard', '/api/health', '/favicon.png', '/logo/logo.jpg', '/icons.svg']) assert.equal(matches(p), false, `${p} must keep revalidating`);
   });
 
   it('only ever puts hashed files in /assets: nothing from /public is published there', () => {
