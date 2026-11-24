@@ -479,40 +479,6 @@ footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
 /* the CTA button keeps its emerald fill but needs a lighter edge on forest */
 .lp-forest-zone .lp-btn { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18); }
 
-.lp-dock {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid var(--line);
-  box-shadow: 0 16px 40px rgba(17, 34, 29, 0.18);
-}
-.lp-dock__toggle {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid var(--line);
-  color: var(--ink);
-  box-shadow: 0 8px 24px rgba(17, 34, 29, 0.14);
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-.lp-dock__toggle:hover { background: var(--lp-tint); }
-.lp-dock__toggle svg { color: var(--lp-accent); }
-.lp-dock__chip {
-  border: 1px solid var(--line);
-  background: #ffffff;
-  color: var(--muted);
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-.lp-dock__chip:hover { background: var(--lp-tint); color: var(--ink); }
-.lp-dock__chip.is-on {
-  background: var(--lp-accent);
-  border-color: var(--lp-accent);
-  color: var(--lp-on-accent);
-}
-.lp-dock__toggle:focus-visible, .lp-dock__chip:focus-visible {
-  outline: 2px solid var(--lp-accent);
-  outline-offset: 2px;
-}
-@media (max-width: 767px) {
-  .lp-dock { max-width: 92vw; }
-}
-
 /* ======================================================================
    Modules section: the flat-lay photograph as a background, UNSCRIMMED.
    The photo renders at full strength. Nothing dims it; the copy is kept legible

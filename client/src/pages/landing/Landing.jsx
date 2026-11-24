@@ -1,10 +1,9 @@
-import { useState, lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Spinner } from '../../components/common/ui';
 import LandingNav from '../../components/landing/LandingNav';
 import BackdropLayers from '../../components/landing/BackdropLayers';
-import Scene3DDock from '../../components/landing/scene3d/Scene3DDock';
 import Hero from '../../components/landing/Hero';
 import StatsRow from '../../components/landing/StatsRow';
 import ModulesGrid from '../../components/landing/ModulesGrid';
@@ -25,8 +24,6 @@ const PharmacyScene3D = lazy(() => import('../../components/landing/scene3d/Phar
 /** The public front door. Signed-in visitors skip it and go straight to the application. */
 export default function Landing() {
   const { user, loading } = useAuth();
-  const [preset, setPreset] = useState('emerald');
-  const [manualExplode, setManualExplode] = useState(false);
 
   if (loading) return <Spinner />;
   if (user) return <Navigate to={user.mustChangePassword ? '/change-password' : '/dashboard'} replace />;
@@ -36,7 +33,7 @@ export default function Landing() {
       {/* porcelain gradient + forest crossfade, then the capsule, then the page */}
       <BackdropLayers />
       <Suspense fallback={null}>
-        <PharmacyScene3D preset={preset} manualExplode={manualExplode} />
+        <PharmacyScene3D />
       </Suspense>
 
       <div className="relative z-10">
@@ -54,13 +51,6 @@ export default function Landing() {
           <ClosingCta />
         </main>
       </div>
-
-      <Scene3DDock
-        preset={preset}
-        onPreset={setPreset}
-        manualExplode={manualExplode}
-        onExplode={setManualExplode}
-      />
     </div>
   );
 }
