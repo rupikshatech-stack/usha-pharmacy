@@ -5,7 +5,7 @@ import { platformService } from '../../services/platformService';
 import { BUSINESS_CATEGORIES, at, blankOrganization, put, serverErrors, toBody, validateOrganization } from '../../utils/platformForm';
 import { exactEmail, exactName, useSimilarOrganizations } from './useSimilarOrganizations';
 import CredentialsHandover from './CredentialsHandover';
-import OrganizationDirectory from './OrganizationDirectory';
+import OrganizationDirectory, { DEFAULT_STATUS } from './OrganizationDirectory';
 
 /** One spelling addresses a field, its error and its summary link: "owner.email" -> "onb-owner-email". */
 const fid = (path) => `onb-${path.replace(/\./g, '-')}`;
@@ -61,7 +61,7 @@ export default function NewOrganization() {
 
   // The directory's own controls live here, so the form can point it at a pharmacy it thinks is a duplicate.
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState(DEFAULT_STATUS);
   const [page, setPage] = useState(1);
   const [highlightId, setHighlightId] = useState(null);
 
@@ -75,7 +75,8 @@ export default function NewOrganization() {
 
   const showInDirectory = (term) => {
     setSearch(term);
-    setStatus('');
+    // The duplicate may be a suspended one, which the default view hides, so look in all of them.
+    setStatus('all');
     setPage(1);
   };
 
@@ -144,7 +145,7 @@ export default function NewOrganization() {
       setSubmitted(false);
       // Clear whatever the directory was narrowed to, so the pharmacy just made is actually among what it shows.
       setSearch('');
-      setStatus('');
+      setStatus(DEFAULT_STATUS);
       setPage(1);
       setHighlightId(data.organization.id);
       setReloadToken((n) => n + 1);

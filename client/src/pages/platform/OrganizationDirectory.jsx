@@ -7,11 +7,18 @@ import { dateFmt } from '../../utils/format';
 import { BUSINESS_CATEGORIES } from '../../utils/platformForm';
 
 const LIMIT = 8;
+/**
+ * Which pharmacies the list opens on. A suspended pharmacy is one nobody can sign in to, and on a real installation
+ * the early ones are test records, so showing them first buries the pharmacies the operator actually looks for.
+ * They are one chip away, and the duplicate check beside the form still sees every status regardless of this.
+ */
+export const DEFAULT_STATUS = 'active';
 const FILTERS = [
-  ['', 'All'],
   ['active', 'Active'],
   ['suspended', 'Suspended'],
+  ['all', 'All'],
 ];
+const STATUS_NOUN = { active: 'active', suspended: 'suspended' };
 const categoryLabel = (v) => BUSINESS_CATEGORIES.find(([k]) => k === v)?.[1] || v || '—';
 
 /**
@@ -32,7 +39,7 @@ export default function OrganizationDirectory({ search, onSearch, status, onStat
   const [copied, setCopied] = useState('');
   const searchRef = useRef(null);
   const copyTimer = useRef(null);
-  const { data, loading, error, reload } = useFetch('/platform/organizations', { search: search || undefined, status: status || undefined, page, limit: LIMIT });
+  const { data, loading, error, reload } = useFetch('/platform/organizations', { search: search || undefined, status: status === 'all' ? undefined : status, page, limit: LIMIT });
 
   // A pharmacy was just created. It is the newest, and the list is newest-first, so go back to the top to show it.
   const seenToken = useRef(reloadToken);
@@ -72,14 +79,18 @@ export default function OrganizationDirectory({ search, onSearch, status, onStat
   const items = data?.items || [];
   const total = data?.total ?? 0;
   const pages = data?.pages ?? 1;
-  const narrowed = Boolean(search || status);
+  const narrowed = Boolean(search || status !== 'all');
 
   // One sentence rather than a bare number, so it is worth hearing read out when the count changes.
-  const summary = loading && !data ? 'Loading pharmacies…' : `${total} ${total === 1 ? 'pharmacy' : 'pharmacies'}${narrowed ? ' found' : ' on this installation'}`;
+  const summary = loading && !data ? 'Loading pharmacies…' : `${total} ${total === 1 ? 'pharmacy' : 'pharmacies'}${search ? ' found' : STATUS_NOUN[status] ? ` ${STATUS_NOUN[status]}` : ' on this installation'}`;
+
+  const emptyHint = search
+    ? `No ${STATUS_NOUN[status] ? `${STATUS_NOUN[status]} ` : ''}pharmacy here has “${search}” in its name or email.${status === 'all' ? '' : ' Try the All chip.'}`
+    : `There are no ${STATUS_NOUN[status] ? `${STATUS_NOUN[status]} ` : ''}pharmacies here.`;
 
   const clearAll = () => {
     onSearch('');
-    onStatus('');
+    onStatus(DEFAULT_STATUS);
   };
 
   return (
@@ -129,7 +140,7 @@ export default function OrganizationDirectory({ search, onSearch, status, onStat
             <EmptyState
               icon={SearchX}
               title="Nothing matches that"
-              hint={search ? `No pharmacy here has “${search}” in its name or email.` : 'No pharmacy here has that status.'}
+              hint={emptyHint}
               action={
                 <Button variant="secondary" size="sm" onClick={clearAll}>
                   Clear the filters
