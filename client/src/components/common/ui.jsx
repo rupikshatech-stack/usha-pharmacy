@@ -151,19 +151,30 @@ export function IconButton({ label, className, children, ...p }) {
 export const inputCls =
   'h-10 w-full rounded-lg border border-line bg-card px-3 text-sm text-ink placeholder:text-muted/70 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-subtle disabled:text-muted';
 
-export function FormField({ label, error, hint, required, children, className }) {
-  const id = useId();
+/**
+ * A labelled control with its hint or error underneath.
+ *
+ * `id` is normally generated, but a caller may supply one so that an error summary elsewhere on the page can link
+ * straight to the field. Whichever it is, the label, the control and the message below all agree on it: the message
+ * is wired up with `aria-describedby`, so a screen reader reads the reason along with the field rather than leaving
+ * it stranded as text nobody is pointed at.
+ */
+export function FormField({ id: givenId, label, error, hint, required, children, className }) {
+  const autoId = useId();
+  const id = givenId || autoId;
+  const msgId = `${id}-msg`;
+  const describedBy = error || hint ? msgId : undefined;
   return (
     <div className={cx('block text-sm', className)}>
       <label htmlFor={id} className="mb-1.5 block text-[13px] font-semibold">
         {label}
         {required && <span className="ml-0.5 text-danger" aria-hidden="true">*</span>}
       </label>
-      {typeof children === 'function' ? children({ id, 'aria-invalid': Boolean(error) }) : children}
+      {typeof children === 'function' ? children({ id, 'aria-invalid': Boolean(error), 'aria-describedby': describedBy }) : children}
       {error ? (
-        <p role="alert" className="mt-1 text-xs text-danger">{error}</p>
+        <p id={msgId} role="alert" className="mt-1 text-xs text-danger">{error}</p>
       ) : (
-        hint && <p className="mt-1 text-xs text-muted">{hint}</p>
+        hint && <p id={msgId} className="mt-1 text-xs text-muted">{hint}</p>
       )}
     </div>
   );
@@ -182,7 +193,7 @@ export function keypadFor({ type, min, step, inputMode }) {
 
 export function Input({ label, error, hint, required, className, inputClassName, ...p }) {
   return (
-    <FormField label={label} error={error} hint={hint} required={required} className={className}>
+    <FormField id={p.id} label={label} error={error} hint={hint} required={required} className={className}>
       {(a) => <input {...a} required={required} inputMode={keypadFor(p)} {...p} className={cx(inputCls, error && 'border-danger', inputClassName)} />}
     </FormField>
   );
@@ -190,7 +201,7 @@ export function Input({ label, error, hint, required, className, inputClassName,
 
 export function Select({ label, error, hint, required, className, children, ...p }) {
   return (
-    <FormField label={label} error={error} hint={hint} required={required} className={className}>
+    <FormField id={p.id} label={label} error={error} hint={hint} required={required} className={className}>
       {(a) => (
         <select {...a} {...p} className={cx(inputCls, 'pr-8')}>
           {children}
