@@ -18,7 +18,7 @@ export default function LandingNav() {
     <header className="sticky top-0 z-40 h-16 border-b border-ink/10 bg-[color-mix(in_srgb,var(--app)_95%,transparent)]">
       <nav aria-label="Main" className="mx-auto flex h-full max-w-6xl items-center justify-between gap-4 px-4">
         <Link to="/" aria-label="Usha Pharmacy, home" className="rounded-lg bg-white px-2 py-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
-          <img src="/logo/logo.jpg" alt="Usha Pharmacy" className="block h-9 w-auto select-none mix-blend-multiply" draggable="false" />
+          <img src="/logo/logo.jpg" alt="Usha Pharmacy" className="block h-11 w-auto select-none mix-blend-multiply" draggable="false" />
         </Link>
         <ul className="hidden items-center gap-7 md:flex">
           {LINKS.map(([href, label]) => (
