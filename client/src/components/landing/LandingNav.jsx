@@ -16,6 +16,20 @@ const LINKS = [
   { href: '#how', label: 'How it works', icon: icon(Workflow), fx: 'glow' },
 ];
 
+/** The pill, the logo and two buttons need about 1100px with labels; below that the pill drops to icons only. */
+function useWide() {
+  const q = '(min-width: 1100px)';
+  const [wide, setWide] = useState(() => (typeof window === 'undefined' ? true : window.matchMedia(q).matches));
+  useEffect(() => {
+    const mq = window.matchMedia(q);
+    const sync = () => setWide(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+  return wide;
+}
+
 /** Which section the reader is in, so the drop follows the scroll. A click pins the answer briefly: the page scrolls
  *  past the sections in between, and the drop should not chase each of them on the way. */
 function useActiveSection() {
@@ -49,6 +63,7 @@ function useActiveSection() {
 /** Sticky site header. Its 5rem height is also the pin offset used by the product showcase. */
 export default function LandingNav() {
   const [active, choose] = useActiveSection();
+  const wide = useWide();
   // The bar is the app's own sidebar green (--side), so it matches the product screens further down the page. The logo is
   // a JPG on a white ground, so on a dark bar it is kept as a deliberate white badge instead of a box that looks pasted on.
   return (
@@ -57,13 +72,14 @@ export default function LandingNav() {
           right. From md up it is a 1fr / auto / 1fr grid, which keeps the links truly centred however wide the logo is. */}
       <div className="flex h-full items-center justify-between gap-4 px-3 sm:px-5 md:grid md:grid-cols-[1fr_auto_1fr]">
         <Link to="/" aria-label="Usha Pharmacy, home" className="justify-self-start rounded-xl bg-white px-2.5 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-white/80">
-          <img src="/logo/logo.jpg" alt="Usha Pharmacy" className="block h-16 w-auto select-none mix-blend-multiply" draggable="false" />
+          <img src="/logo/logo.jpg" alt="Usha Pharmacy" className="block h-12 w-auto select-none mix-blend-multiply sm:h-16" draggable="false" />
         </Link>
         <div className="hidden justify-self-center md:block">
-          <LiquidNav items={LINKS} active={active} onChange={choose} tone="dark" label="Main" />
+          <LiquidNav items={LINKS} active={active} onChange={choose} tone="dark" label="Main" compact={!wide} />
         </div>
         <div className="flex items-center gap-2 md:justify-self-end">
-          <a href="#motion" className={`${ctaPrimary} !h-10 !rounded-full !bg-sage !px-5 !text-ink hover:!bg-white focus-visible:!ring-white/80`}>Get started</a>
+          <Link to="/login" className="lp-glass-btn">Sign in</Link>
+          <a href="#motion" className="lp-glass-btn lp-glass-btn--light">Get started</a>
         </div>
       </div>
     </header>
