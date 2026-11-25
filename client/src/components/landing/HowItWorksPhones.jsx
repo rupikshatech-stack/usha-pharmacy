@@ -12,8 +12,8 @@ import { cx } from '../common/ui';
  * into view is already mid-flow. With reduced motion nothing starts: every phone rests on the settled state of
  * its flow.
  *
- * The cursor is placed from each target's bounding box, measured relative to the phone's screen at the moment it
- * moves and divided by the screen's own scale, so it stays on target however large the card is drawn.
+ * The cursor is placed from each target's layout offsets within the phone's screen, measured at the moment it moves,
+ * so it stays on target however large the card is drawn and however the filmstrip tilts it.
  */
 
 const prefersStill = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -83,9 +83,20 @@ function useCursor(screenRef) {
   const spot = useCallback(
     (el, fx = 0.5, fy = 0.5) => {
       const screen = screenRef.current;
+      // Walk the layout offsets up to the screen. Unlike bounding boxes these ignore transforms, so the point is
+      // exact in the screen's own pixels even while the card is scaled to its slot and tilted by the filmstrip.
+      let x = 0;
+      let y = 0;
+      let n = el;
+      while (n && n !== screen) {
+        x += n.offsetLeft;
+        y += n.offsetTop;
+        n = n.offsetParent;
+      }
+      if (n === screen) return { x: x + el.offsetWidth * fx, y: y + el.offsetHeight * fy };
+      // not laid out under the screen (should not happen): fall back to the boxes, undoing the scale
       const s = screen.getBoundingClientRect();
       const r = el.getBoundingClientRect();
-      // the card may be drawn scaled; left/top are in the screen's own pixels, so undo the scale
       const k = s.width / (screen.offsetWidth || s.width) || 1;
       return { x: (r.left - s.left + r.width * fx) / k, y: (r.top - s.top + r.height * fy) / k };
     },
@@ -160,11 +171,13 @@ function Shot({ src }) {
 function Phone({ hostRef, screenRef, cursor, toast, screenshot, children }) {
   return (
     <div ref={hostRef} aria-hidden="true" className="mx-auto w-[15.5rem] select-none">
-      <div className="rounded-[2.1rem] bg-side p-2 shadow-[0_18px_40px_-22px_rgba(10,22,18,0.65)]">
-        <div ref={screenRef} className="lp-ph-screen relative flex h-[23.5rem] flex-col overflow-hidden rounded-[1.65rem] text-left">
+      <div className="rounded-[2.4rem] bg-ink p-2.5 shadow-[0_28px_50px_-24px_rgba(10,22,18,0.6)]">
+        <div ref={screenRef} className="lp-ph-screen relative flex h-[31rem] flex-col overflow-hidden rounded-[1.95rem] text-left">
           <Shot src={screenshot} />
           <div className="relative z-[1] flex flex-1 flex-col bg-card/90">{children}</div>
-          <span className="absolute left-1/2 top-1.5 z-[2] h-3.5 w-14 -translate-x-1/2 rounded-full bg-side" />
+          {/* the status bar: a band of the brand green with the notch in it */}
+          <span className="absolute inset-x-0 top-0 z-[2] h-10 bg-side" />
+          <span className="absolute left-1/2 top-2 z-[2] h-4 w-16 -translate-x-1/2 rounded-full bg-ink" />
           <span className={cx('lp-ph-toast', toast.on && 'is-on')}>
             <Check size={11} strokeWidth={3} className="text-sage" />
             {toast.text}
@@ -234,7 +247,7 @@ function SignInPhone({ screenshot }) {
 
   return (
     <Phone hostRef={host} screenRef={screen} cursor={cursor} screenshot={screenshot} toast={{ text: 'Welcome back', on: s.toast }}>
-      <div className="flex flex-1 flex-col px-4 pb-5 pt-[3.6rem]">
+      <div className="flex flex-1 flex-col px-4 pb-5 pt-[4.75rem]">
         <p className="text-[9.5px] font-bold uppercase tracking-[0.18em] text-muted">Usha Pharmacy</p>
         <p className="mt-1 text-[15px] font-extrabold leading-tight tracking-tight text-ink">Sign in to your workspace</p>
 
@@ -324,7 +337,7 @@ function StockPhone({ screenshot }) {
 
   return (
     <Phone hostRef={host} screenRef={screen} cursor={cursor} screenshot={screenshot} toast={{ text: 'Stock added', on: s.toast }}>
-      <div className="flex flex-1 flex-col px-4 pb-4 pt-[3.6rem]">
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-[4.75rem]">
         <div className="flex items-center justify-between">
           <p className="text-[15px] font-extrabold tracking-tight text-ink">Stock</p>
           <div ref={addEl} className={cx('lp-ph-btn h-8 gap-1 bg-primary px-3 text-[11px] font-bold text-on-primary', s.press && 'is-press')}>
@@ -411,7 +424,7 @@ function BillingPhone({ screenshot }) {
 
   return (
     <Phone hostRef={host} screenRef={screen} cursor={cursor} screenshot={screenshot} toast={{ text: 'Sale complete', on: s.toast }}>
-      <div className="flex flex-1 flex-col px-4 pb-4 pt-[3.6rem]">
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-[4.75rem]">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[15px] font-extrabold leading-tight tracking-tight text-ink">New bill</p>

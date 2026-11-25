@@ -552,47 +552,85 @@ footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
 
 /* ======================================================================
    How it works: the pinned filmstrip (HowItWorks.jsx)
+   Three screens, one per step: the step's text at the left, its phone beside it, the next step's text waiting
+   at the right. Desktop sizes are in vw (one screen is --period wide) and the phone in --h, the stage height.
    ====================================================================== */
 .lp-how {
-  /* --h and --u are declared together, here, so --u always resolves against this section's own --h.
-     --u is a hundredth of the stage height, capped by the width (so a phone never outgrows a narrow screen) and by
-     10px (so a tall tablet does not get a giant one). Everything in the section is sized in it. */
+  /* --h is declared with everything that reads it, in this one rule. */
   --h: 100svh;
-  --u: min(calc(var(--h) / 100), 2.4vw, 10px);
-  --how-card: calc(var(--u) * 40); /* not --card: that name is the site's card colour token */
-  --gap: calc(var(--u) * 10);
-  --phone-h: calc(var(--u) * 46);
-  /* The app's own brand forest (index.css --primary / --side). The landing page tints its accent a shade
-     differently; this section uses the app's, for the badges, the phone bezels and the demo's accents. */
+  --period: 64vw;  /* one screen of the filmstrip: text, phone, then the gap before the next step's text */
+  --text-w: 22vw;
+  --wrap-w: 22vw;  /* the phone is centred in this, about a third of the way across the screen */
+  --lead: 11vw;    /* where the first step's text starts */
+  --tail: 25vw;    /* so the run ends with the last step's text about a third of the way in */
+  --range: 111vw;  /* the sideways run: --lead + 2 screens + the last text and phone + --tail - the viewport */
+  --title-fs: clamp(28px, min(3.1vw, 5.6svh), 52px);
+  --head-top: calc(5rem + 3svh);
+  /* the filmstrip starts under the heading (eyebrow + three lines of title + a breath), as in the references */
+  --vp-top: calc(var(--head-top) + 2.6rem + 3.4 * var(--title-fs));
+  --phone-h: min(calc((var(--h) - var(--vp-top)) * 0.9), 40vw, 660px);
+  /* The app's own brand forest (index.css --primary / --side) for the badges, the status bars and the demo. */
   --primary: #174b3a;
   --side: #174b3a;
   --lp-accent: #174b3a;
-  /* The cream: halfway between the landing's two creams, --app and --subtle, rather than a new hex. */
   --how-tint: color-mix(in srgb, var(--app) 50%, var(--subtle));
   background: var(--how-tint);
 }
-/* stage height plus exactly the track's overflow (two card spacings), so the pin lasts as long as the sideways run */
-.lp-how--film { height: calc(var(--h) + 2 * (var(--how-card) + var(--gap))); }
-.lp-how-stage {
-  position: sticky; top: 0; height: var(--h); overflow: hidden;
-  display: flex; flex-direction: column;
-  padding-top: calc(5rem + var(--u) * 3.5); /* 5rem is the site header that sits over the top of the stage */
+/* a warm glow in the top right, as in the brand's cream */
+.lp-how-glow {
+  background:
+    radial-gradient(ellipse 45% 50% at 88% 8%, color-mix(in srgb, var(--amber) 9%, transparent), transparent 70%),
+    var(--how-tint);
 }
-.lp-how-title { font-size: min(calc(var(--u) * 5.6), 8.5vw); }
-.lp-how-viewport { flex: 1; min-height: 0; display: flex; align-items: center; }
+/* stage plus the sideways run; the script sets the exact value, this is the close first guess */
+.lp-how--film { height: calc(var(--h) + var(--range)); }
+.lp-how-stage { position: sticky; top: 0; height: var(--h); overflow: hidden; }
+.lp-how--film .lp-how-head { position: absolute; z-index: 2; left: 4vw; top: var(--head-top); }
+.lp-how-title {
+  font-family: Georgia, 'Times New Roman', Times, serif; font-weight: 400; line-height: 1.12; letter-spacing: -0.01em;
+  font-size: var(--title-fs); max-width: 7.2em;
+}
+.lp-how-viewport { position: absolute; inset: var(--vp-top) 0 0; display: flex; align-items: center; }
 .lp-how-track {
-  position: relative; display: flex; align-items: flex-start; gap: var(--gap); width: max-content;
-  padding-inline: calc((100% - var(--how-card)) / 2); /* the first card starts centred, the last one ends centred */
+  display: flex; align-items: center; width: max-content;
+  padding-left: var(--lead); padding-right: var(--tail);
   will-change: transform;
 }
-.lp-how-card { flex: none; width: var(--how-card); display: flex; flex-direction: column; align-items: center; text-align: center; will-change: transform; }
-.lp-how--still .lp-how-card { width: min(var(--how-card), 100%); }
-.lp-how-slot { width: calc(var(--phone-h) * 248 / 392); height: var(--phone-h); }
+.lp-how-item { position: relative; display: flex; align-items: center; }
+.lp-how--film .lp-how-item { width: var(--period); }
+.lp-how--film .lp-how-item:last-child { width: calc(var(--text-w) + var(--wrap-w)); }
+.lp-how-text { width: var(--text-w); text-align: left; }
+.lp-how-text h3 { font-size: clamp(17px, 1.4vw, 22px); }
+.lp-how-text p { font-size: clamp(13px, 0.95vw, 15px); max-width: 17em; }
+.lp-how-num { width: 2.25rem; height: 2.25rem; font-size: 0.875rem; }
+.lp-how-phonewrap { width: var(--wrap-w); margin-left: 3vw; display: flex; justify-content: center; will-change: transform; }
+.lp-how-slot { height: var(--phone-h); width: calc(var(--phone-h) * 248 / 516); }
 .lp-how-phone { width: 248px; transform: scale(var(--k, 1)); transform-origin: top left; }
-.lp-how-caption { margin-top: calc(var(--u) * 2.6); }
-.lp-how-caption h3 { font-size: max(15px, calc(var(--u) * 2.1)); }
-.lp-how-caption p { font-size: max(13px, calc(var(--u) * 1.7)); }
-.lp-how-num { width: max(26px, calc(var(--u) * 3.6)); height: max(26px, calc(var(--u) * 3.6)); font-size: max(12px, calc(var(--u) * 1.5)); }
+
+/* Phone width: one screen per step, the text above its phone, both centred. */
+@media (max-width: 767px) {
+  .lp-how { --period: 100vw; --text-w: min(82vw, 22rem); --wrap-w: 100vw; --lead: 0px; --tail: 0px; --range: 200vw; --phone-h: clamp(280px, calc(var(--h) - 24rem), 520px); }
+  .lp-how--film .lp-how-head { left: 1rem; right: 1rem; top: calc(5rem + 1.5svh); }
+  .lp-how { --title-fs: clamp(26px, 7.4vw, 34px); }
+  .lp-how-title { max-width: 11em; }
+  .lp-how-viewport { inset: calc(5rem + 7.5rem) 0 0; align-items: flex-start; }
+  .lp-how-phonewrap { margin-left: 0; }
+  .lp-how-item { flex-direction: column; justify-content: flex-start; gap: 1.1rem; }
+  .lp-how--film .lp-how-item, .lp-how--film .lp-how-item:last-child { width: 100vw; }
+  .lp-how-text p { max-width: none; }
+  .lp-how-text .mt-4 { margin-top: 0.6rem; }
+}
+
+/* Reduced motion: a plain vertical stack, text beside its phone where there is room. */
+.lp-how--still .lp-how-head { max-width: 72rem; margin: 0 auto; }
+.lp-how--still .lp-how-item { gap: 5vw; }
+.lp-how--still .lp-how-text { width: min(22rem, 34vw); }
+.lp-how--still .lp-how-phonewrap { width: auto; }
+@media (max-width: 767px) {
+  .lp-how--still .lp-how-item { flex-direction: column; gap: 1.5rem; }
+  .lp-how--still .lp-how-text { width: min(82vw, 22rem); }
+}
+
 .lp-ph-screen { background: var(--how-tint, var(--subtle)); }
 
 /* ======================================================================
@@ -628,7 +666,7 @@ footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
 .lp-ph-cursor[data-on='true'] { opacity: 1; transition: left 0.5s ease, top 0.5s ease, opacity 0.25s ease, transform 0.14s ease; }
 .lp-ph-cursor[data-press='true'] { transform: scale(0.7); }
 .lp-ph-toast {
-  position: absolute; z-index: 20; top: 1.5rem; left: 50%; /* its own lane, under the notch and above the content (which starts at 3.6rem) */ display: inline-flex; align-items: center; gap: 0.35rem;
+  position: absolute; z-index: 20; top: 2.85rem; left: 50%; /* its own lane, under the status bar and above the content (which starts at 4.75rem) */ display: inline-flex; align-items: center; gap: 0.35rem;
   padding: 0.35rem 0.75rem; border-radius: 999px; white-space: nowrap; pointer-events: none;
   background: var(--ink); color: var(--app); font-size: 11px; font-weight: 700;
   box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--ink) 55%, transparent);
