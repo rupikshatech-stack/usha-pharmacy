@@ -551,6 +551,51 @@ footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
 #modules .lp-lift ul li { background: rgba(255, 255, 255, 0.6); }
 
 /* ======================================================================
+   How it works: the pinned filmstrip (HowItWorks.jsx)
+   ====================================================================== */
+.lp-how {
+  /* --h and --u are declared together, here, so --u always resolves against this section's own --h.
+     --u is a hundredth of the stage height, capped by the width (so a phone never outgrows a narrow screen) and by
+     10px (so a tall tablet does not get a giant one). Everything in the section is sized in it. */
+  --h: 100svh;
+  --u: min(calc(var(--h) / 100), 2.4vw, 10px);
+  --card: calc(var(--u) * 40);
+  --gap: calc(var(--u) * 10);
+  --phone-h: calc(var(--u) * 46);
+  /* The app's own brand forest (index.css --primary / --side). The landing page tints its accent a shade
+     differently; this section uses the app's, for the badges, the phone bezels and the demo's accents. */
+  --primary: #174b3a;
+  --side: #174b3a;
+  --lp-accent: #174b3a;
+  /* The cream: halfway between the landing's two creams, --app and --subtle, rather than a new hex. */
+  --how-tint: color-mix(in srgb, var(--app) 50%, var(--subtle));
+  background: var(--how-tint);
+}
+/* stage height plus exactly the track's overflow (two card spacings), so the pin lasts as long as the sideways run */
+.lp-how--film { height: calc(var(--h) + 2 * (var(--card) + var(--gap))); }
+.lp-how-stage {
+  position: sticky; top: 0; height: var(--h); overflow: hidden;
+  display: flex; flex-direction: column;
+  padding-top: calc(5rem + var(--u) * 3.5); /* 5rem is the site header that sits over the top of the stage */
+}
+.lp-how-title { font-size: min(calc(var(--u) * 5.6), 8.5vw); }
+.lp-how-viewport { flex: 1; min-height: 0; display: flex; align-items: center; }
+.lp-how-track {
+  position: relative; display: flex; align-items: flex-start; gap: var(--gap); width: max-content;
+  padding-inline: calc((100% - var(--card)) / 2); /* the first card starts centred, the last one ends centred */
+  will-change: transform;
+}
+.lp-how-card { flex: none; width: var(--card); display: flex; flex-direction: column; align-items: center; text-align: center; will-change: transform; }
+.lp-how--still .lp-how-card { width: min(var(--card), 100%); }
+.lp-how-slot { width: calc(var(--phone-h) * 248 / 392); height: var(--phone-h); }
+.lp-how-phone { width: 248px; transform: scale(var(--k, 1)); transform-origin: top left; }
+.lp-how-caption { margin-top: calc(var(--u) * 2.6); }
+.lp-how-caption h3 { font-size: max(15px, calc(var(--u) * 2.1)); }
+.lp-how-caption p { font-size: max(13px, calc(var(--u) * 1.7)); }
+.lp-how-num { width: max(26px, calc(var(--u) * 3.6)); height: max(26px, calc(var(--u) * 3.6)); font-size: max(12px, calc(var(--u) * 1.5)); }
+.lp-ph-screen { background: var(--how-tint, var(--subtle)); }
+
+/* ======================================================================
    How it works: the self-playing phones (HowItWorksPhones.jsx). Scoped by the lp-ph- prefix; colours are the
    page tokens only.
    ====================================================================== */

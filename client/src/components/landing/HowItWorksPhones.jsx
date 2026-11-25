@@ -7,13 +7,13 @@ import { cx } from '../common/ui';
  * One self-playing phone per step of "How it works": a simulated cursor taps through the step while the screen
  * reacts, then it resets and plays again. Illustrative data only, never the API, and no library: timers and state.
  *
- * Each phone is its own async script, so the three run side by side and never wait on each other. A phone plays
- * only while it is on screen (the same rule as BillingDemo, so the page is not animating three loops nobody can
- * see next to a 3D scene) and starts again from the top each time it comes back. With reduced motion nothing
- * starts: every phone rests on the settled state of its flow.
+ * Each phone is its own async script, so the three run side by side and never wait on each other. They run from
+ * the moment the page is ready, wherever the visitor has scrolled, so whichever card the horizontal track brings
+ * into view is already mid-flow. With reduced motion nothing starts: every phone rests on the settled state of
+ * its flow.
  *
  * The cursor is placed from each target's bounding box, measured relative to the phone's screen at the moment it
- * moves, so the layout can change size without a coordinate going stale.
+ * moves and divided by the screen's own scale, so it stays on target however large the card is drawn.
  */
 
 const prefersStill = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -21,68 +21,46 @@ const frame = () => new Promise((resolve) => requestAnimationFrame(() => resolve
 const STOP = Symbol('demo stopped');
 
 /**
- * Runs `script` forever while `hostRef` is on screen. Leaving the screen cancels it (every pending sleep resolves and
- * the next checkpoint throws STOP, so nothing is left running) and calls `onStop` to put the phone back at its start.
- * The first run waits for fonts, then a beat, so the layout the cursor measures is the layout that stays.
+ * Runs `script` forever from mount until unmount. The first run waits for fonts, then a beat, so the layout the
+ * cursor measures is the layout that stays. Unmounting cancels it: every pending sleep resolves and the next
+ * checkpoint throws STOP, so nothing is left running.
  */
-function useDemoLoop(hostRef, script, onStop) {
-  const live = useRef({ script, onStop });
-  live.current = { script, onStop };
+function useDemoLoop(script) {
+  const live = useRef(script);
+  live.current = script;
 
   useEffect(() => {
-    if (prefersStill() || !hostRef.current) return undefined;
-    let cancel = null;
-
-    const begin = () => {
-      let dead = false;
-      const pending = new Set();
-      const wait = async (ms) => {
-        await new Promise((resolve) => {
-          const entry = { resolve, t: 0 };
-          entry.t = window.setTimeout(() => {
-            pending.delete(entry);
-            resolve();
-          }, ms);
-          pending.add(entry);
-        });
-        if (dead) throw STOP;
-      };
-      (async () => {
-        try {
-          await (document.fonts?.ready ?? Promise.resolve());
-          await wait(700);
-          for (;;) await live.current.script({ wait });
-        } catch (e) {
-          if (e !== STOP) console.error(e);
-        }
-      })();
-      return () => {
-        dead = true;
-        pending.forEach((entry) => {
-          clearTimeout(entry.t);
-          entry.resolve();
-        });
-      };
+    if (prefersStill()) return undefined;
+    let dead = false;
+    const pending = new Set();
+    const wait = async (ms) => {
+      await new Promise((resolve) => {
+        const entry = { resolve, t: 0 };
+        entry.t = window.setTimeout(() => {
+          pending.delete(entry);
+          resolve();
+        }, ms);
+        pending.add(entry);
+      });
+      if (dead) throw STOP;
     };
-
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) {
-          if (!cancel) cancel = begin();
-        } else if (cancel) {
-          cancel();
-          cancel = null;
-          live.current.onStop();
-        }
-      },
-      { threshold: 0.3 },
-    );
-    io.observe(hostRef.current);
+    (async () => {
+      try {
+        await (document.fonts?.ready ?? Promise.resolve());
+        await wait(700);
+        for (;;) await live.current({ wait });
+      } catch (e) {
+        if (e !== STOP) console.error(e);
+      }
+    })();
     return () => {
-      io.disconnect();
-      cancel?.();
+      dead = true;
+      pending.forEach((entry) => {
+        clearTimeout(entry.t);
+        entry.resolve();
+      });
     };
-  }, [hostRef]);
+  }, []);
 }
 
 /** The round cursor dot and the moves it makes. Every move resolves once the dot has arrived. */
@@ -91,9 +69,12 @@ function useCursor(screenRef) {
 
   const spot = useCallback(
     (el, fx = 0.5, fy = 0.5) => {
-      const s = screenRef.current.getBoundingClientRect();
+      const screen = screenRef.current;
+      const s = screen.getBoundingClientRect();
       const r = el.getBoundingClientRect();
-      return { x: r.left - s.left + r.width * fx, y: r.top - s.top + r.height * fy };
+      // the card may be drawn scaled; left/top are in the screen's own pixels, so undo the scale
+      const k = s.width / (screen.offsetWidth || s.width) || 1;
+      return { x: (r.left - s.left + r.width * fx) / k, y: (r.top - s.top + r.height * fy) / k };
     },
     [screenRef],
   );
@@ -109,8 +90,8 @@ function useCursor(screenRef) {
   /** Fades in from the lower right of the screen, then travels to the first target. */
   const enter = useCallback(
     async (wait, el) => {
-      const s = screenRef.current.getBoundingClientRect();
-      setCursor({ x: s.width * 0.82, y: s.height * 0.9, on: false, press: false });
+      const screen = screenRef.current;
+      setCursor({ x: screen.offsetWidth * 0.82, y: screen.offsetHeight * 0.9, on: false, press: false });
       await frame();
       setCursor((c) => ({ ...c, on: true }));
       await wait(320);
@@ -139,14 +120,38 @@ async function typeInto(wait, text, set, ms = 55) {
   }
 }
 
-/** The phone itself: bezel, screen, the cursor and the toast. Decorative, so hidden from assistive technology. */
-function Phone({ hostRef, screenRef, cursor, toast, children }) {
+/**
+ * The step's screenshot, if the file is there. It stays invisible until it has loaded and is dropped if it fails,
+ * so a missing file leaves the tinted screen rather than a broken image or an alt-text box.
+ */
+function Shot({ src }) {
+  const [state, setState] = useState('loading');
+  if (!src || state === 'missing') return null;
+  return (
+    <img
+      src={src}
+      alt=""
+      draggable="false"
+      onLoad={() => setState('ready')}
+      onError={() => setState('missing')}
+      className={cx('absolute inset-0 h-full w-full object-cover transition-opacity duration-300', state === 'ready' ? 'opacity-100' : 'opacity-0')}
+    />
+  );
+}
+
+/**
+ * The phone itself: bezel, screen, the cursor and the toast. The screen is the section's tint, then the step's
+ * screenshot if there is one, then the live UI drawn over it slightly translucent, so the demo reads as interaction
+ * on that screen. Decorative, so hidden from assistive technology.
+ */
+function Phone({ hostRef, screenRef, cursor, toast, screenshot, children }) {
   return (
     <div ref={hostRef} aria-hidden="true" className="mx-auto w-[15.5rem] select-none">
       <div className="rounded-[2.1rem] bg-side p-2 shadow-[0_18px_40px_-22px_rgba(10,22,18,0.65)]">
-        <div ref={screenRef} className="relative flex h-[23.5rem] flex-col overflow-hidden rounded-[1.65rem] bg-card text-left">
-          <span className="absolute left-1/2 top-1.5 h-3.5 w-14 -translate-x-1/2 rounded-full bg-side" />
-          {children}
+        <div ref={screenRef} className="lp-ph-screen relative flex h-[23.5rem] flex-col overflow-hidden rounded-[1.65rem] text-left">
+          <Shot src={screenshot} />
+          <div className="relative z-[1] flex flex-1 flex-col bg-card/90">{children}</div>
+          <span className="absolute left-1/2 top-1.5 z-[2] h-3.5 w-14 -translate-x-1/2 rounded-full bg-side" />
           <span className={cx('lp-ph-toast', toast.on && 'is-on')}>
             <Check size={11} strokeWidth={3} className="text-sage" />
             {toast.text}
@@ -169,7 +174,7 @@ const EMAIL = 'owner@usha.app';
 const PASS_LEN = 10;
 const SIGN_IN_START = { email: '', pass: 0, focus: '', btn: 'idle', toast: false };
 
-function SignInPhone() {
+function SignInPhone({ screenshot }) {
   const host = useRef(null);
   const screen = useRef(null);
   const emailEl = useRef(null);
@@ -180,7 +185,6 @@ function SignInPhone() {
   const { cursor, enter, moveTo, tap, hide } = useCursor(screen);
 
   useDemoLoop(
-    host,
     async ({ wait }) => {
       patch(SIGN_IN_START);
       await wait(600);
@@ -213,14 +217,10 @@ function SignInPhone() {
       hide();
       await wait(1000);
     },
-    () => {
-      setS(SIGN_IN_START);
-      hide();
-    },
   );
 
   return (
-    <Phone hostRef={host} screenRef={screen} cursor={cursor} toast={{ text: 'Welcome back', on: s.toast }}>
+    <Phone hostRef={host} screenRef={screen} cursor={cursor} screenshot={screenshot} toast={{ text: 'Welcome back', on: s.toast }}>
       <div className="flex flex-1 flex-col px-4 pb-5 pt-[3.6rem]">
         <p className="text-[9.5px] font-bold uppercase tracking-[0.18em] text-muted">Usha Pharmacy</p>
         <p className="mt-1 text-[15px] font-extrabold leading-tight tracking-tight text-ink">Sign in to your workspace</p>
@@ -278,7 +278,7 @@ function StockRow({ row, className }) {
   );
 }
 
-function StockPhone() {
+function StockPhone({ screenshot }) {
   const host = useRef(null);
   const screen = useRef(null);
   const addEl = useRef(null);
@@ -287,7 +287,6 @@ function StockPhone() {
   const { cursor, enter, tap, hide } = useCursor(screen);
 
   useDemoLoop(
-    host,
     async ({ wait }) => {
       patch(STOCK_START);
       await wait(700);
@@ -306,16 +305,12 @@ function StockPhone() {
       patch({ added: false, leaving: false });
       await wait(1100);
     },
-    () => {
-      setS(STOCK_START);
-      hide();
-    },
   );
 
   const units = STOCK_ROWS.reduce((n, r) => n + r.qty, 0) + (s.added && !s.leaving ? NEW_STOCK.qty : 0);
 
   return (
-    <Phone hostRef={host} screenRef={screen} cursor={cursor} toast={{ text: 'Stock added', on: s.toast }}>
+    <Phone hostRef={host} screenRef={screen} cursor={cursor} screenshot={screenshot} toast={{ text: 'Stock added', on: s.toast }}>
       <div className="flex flex-1 flex-col px-4 pb-4 pt-[3.6rem]">
         <div className="flex items-center justify-between">
           <p className="text-[15px] font-extrabold tracking-tight text-ink">Stock</p>
@@ -350,7 +345,7 @@ const lineOf = (i) => i.qty * i.rate;
 const billTotal = (n) => BILL_ITEMS.slice(0, n).reduce((sum, i) => sum + lineOf(i), 0);
 const BILL_START = { items: 0, total: 0, press: '', done: false, toast: false };
 
-function BillingPhone() {
+function BillingPhone({ screenshot }) {
   const host = useRef(null);
   const screen = useRef(null);
   const addEl = useRef(null);
@@ -370,7 +365,6 @@ function BillingPhone() {
   };
 
   useDemoLoop(
-    host,
     async ({ wait }) => {
       patch(BILL_START);
       await wait(700);
@@ -398,14 +392,10 @@ function BillingPhone() {
       patch(BILL_START);
       await wait(1000);
     },
-    () => {
-      setS(BILL_START);
-      hide();
-    },
   );
 
   return (
-    <Phone hostRef={host} screenRef={screen} cursor={cursor} toast={{ text: 'Sale complete', on: s.toast }}>
+    <Phone hostRef={host} screenRef={screen} cursor={cursor} screenshot={screenshot} toast={{ text: 'Sale complete', on: s.toast }}>
       <div className="flex flex-1 flex-col px-4 pb-4 pt-[3.6rem]">
         <div className="flex items-center justify-between">
           <div>
@@ -461,9 +451,9 @@ function BillingPhone() {
   );
 }
 
-/** The phone for step `step` (0 sign in, 1 stock, 2 billing). */
-export default function StepPhone({ step }) {
-  if (step === 0) return <SignInPhone />;
-  if (step === 1) return <StockPhone />;
-  return <BillingPhone />;
+/** The phone for step `step` (0 sign in, 1 stock, 2 billing), over `screenshot` when that file exists. */
+export default function StepPhone({ step, screenshot }) {
+  if (step === 0) return <SignInPhone screenshot={screenshot} />;
+  if (step === 1) return <StockPhone screenshot={screenshot} />;
+  return <BillingPhone screenshot={screenshot} />;
 }
