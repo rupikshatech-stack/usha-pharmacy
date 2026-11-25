@@ -7,7 +7,7 @@ import Reveal from './Reveal';
 
 const COLUMNS = [
   ['Product', [['#modules', 'Modules'], ['#platform', 'Platform'], ['#motion', 'The demo']]],
-  ['Company', [['#why', 'Why this exists'], ['#who', 'Who it’s for'], ['#how', 'How it works']]],
+  ['Company', [['#why', 'Why this exists'], ['#who', 'Who it’s for'], ['#how', 'How it works'], ['#faq', 'Questions']]],
   ['Account', [['/login', 'Sign in']]],
 ];
 

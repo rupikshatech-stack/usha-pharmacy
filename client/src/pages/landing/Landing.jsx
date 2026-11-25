@@ -10,6 +10,8 @@ import ModulesGrid from '../../components/landing/ModulesGrid';
 import WhyThisExists from '../../components/landing/WhyThisExists';
 import DeferredSection from '../../components/landing/DeferredSection';
 import Audiences from '../../components/landing/Audiences';
+import Principles from '../../components/landing/Principles';
+import Faq from '../../components/landing/Faq';
 import HowItWorks from '../../components/landing/HowItWorks';
 import ClosingCta from '../../components/landing/ClosingCta';
 import '../../components/landing/landing.css';
@@ -47,6 +49,8 @@ export default function Landing() {
           <WhyThisExists />
           <DeferredSection component={ProductShowcase} id="platform" className="min-h-[600vh] lg:min-h-[820vh]" />
           <Audiences />
+          <Principles />
+          <Faq />
           <HowItWorks />
           <ClosingCta />
         </main>
