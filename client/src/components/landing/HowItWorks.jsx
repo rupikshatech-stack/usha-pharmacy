@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import useRise from './useRise';
+import StepPhone from './HowItWorksPhones';
 
 const STEPS = [
   ['Sign in', 'Open your organization’s workspace with the account your administrator created for you.'],
@@ -22,10 +23,13 @@ export default function HowItWorks() {
         </div>
         <ol className="mt-16 grid gap-5 md:grid-cols-3">
           {STEPS.map(([title, body], i) => (
-            <li key={title} data-rise className="lp-lift rounded-2xl border border-ink/10 bg-ink/[0.035] p-7">
+            <li key={title} data-rise className="lp-lift flex flex-col rounded-2xl border border-ink/10 bg-ink/[0.035] p-7">
               <span className="grid h-10 w-10 place-items-center rounded-full bg-primary text-sm font-extrabold tabular-nums text-on-primary">{i + 1}</span>
               <h3 className="mt-4 text-base font-bold text-ink">{title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-muted">{body}</p>
+              <div className="mt-auto pt-7">
+                <StepPhone step={i} />
+              </div>
             </li>
           ))}
         </ol>

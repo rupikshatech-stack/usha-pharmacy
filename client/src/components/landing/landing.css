@@ -549,3 +549,49 @@ footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
 }
 /* the tag pills sit on the card, so they only need a hairline */
 #modules .lp-lift ul li { background: rgba(255, 255, 255, 0.6); }
+
+/* ======================================================================
+   How it works: the self-playing phones (HowItWorksPhones.jsx). Scoped by the lp-ph- prefix; colours are the
+   page tokens only.
+   ====================================================================== */
+.lp-ph-field {
+  display: flex; align-items: center; height: 2.25rem; padding: 0 0.65rem; overflow: hidden; white-space: nowrap;
+  border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent); border-radius: 0.6rem;
+  background: color-mix(in srgb, var(--ink) 3%, transparent); font-size: 12px; color: var(--ink);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.lp-ph-field.is-focus { border-color: var(--lp-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lp-accent) 18%, transparent); }
+.lp-ph-caret {
+  display: inline-block; flex: none; width: 1px; height: 1.05em; margin-left: 1px; background: var(--lp-accent);
+  animation: lp-ph-blink 1s steps(1) infinite;
+}
+@keyframes lp-ph-blink { 50% { opacity: 0; } }
+.lp-ph-btn {
+  display: flex; align-items: center; justify-content: center; gap: 0.4rem; border-radius: 999px; white-space: nowrap;
+  transition: transform 0.14s ease, background-color 0.3s ease, color 0.3s ease;
+}
+.lp-ph-btn.is-press { transform: scale(0.94); }
+.lp-ph-cursor {
+  position: absolute; z-index: 30; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 999px; pointer-events: none;
+  background: color-mix(in srgb, var(--lp-accent) 28%, transparent); border: 2px solid var(--lp-accent);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--ink) 30%, transparent);
+  opacity: 0; transition: opacity 0.25s ease; /* while hidden it jumps, so it never glides in from a stale spot */
+}
+.lp-ph-cursor[data-on='true'] { opacity: 1; transition: left 0.5s ease, top 0.5s ease, opacity 0.25s ease, transform 0.14s ease; }
+.lp-ph-cursor[data-press='true'] { transform: scale(0.7); }
+.lp-ph-toast {
+  position: absolute; z-index: 20; top: 1.5rem; left: 50%; /* its own lane, under the notch and above the content (which starts at 3.6rem) */ display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.35rem 0.75rem; border-radius: 999px; white-space: nowrap; pointer-events: none;
+  background: var(--ink); color: var(--app); font-size: 11px; font-weight: 700;
+  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--ink) 55%, transparent);
+  opacity: 0; transform: translate(-50%, -8px); transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.lp-ph-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+.lp-ph-row-in { animation: lp-ph-rowin 0.45s ease both, lp-ph-flash 1.5s ease 0.15s both; }
+.lp-ph-row-out { animation: lp-ph-rowout 0.4s ease both; }
+@keyframes lp-ph-rowin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes lp-ph-flash { from { background-color: color-mix(in srgb, var(--lp-accent) 20%, transparent); } to { background-color: transparent; } }
+@keyframes lp-ph-rowout { to { opacity: 0; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) {
+  .lp-ph-caret, .lp-ph-row-in, .lp-ph-row-out { animation: none; }
+}
