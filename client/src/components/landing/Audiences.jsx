@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { cx } from '../common/ui';
 import useRise from './useRise';
-import CanopyBackdrop from './CanopyBackdrop';
+import CanopyStage from './CanopyStage';
 
 const TABS = [
   {
@@ -46,17 +46,11 @@ export default function Audiences() {
   const tab = TABS[active];
   return (
     <section id="who" ref={root} aria-labelledby="who-heading" className="lp-who scroll-mt-20">
-      {/* the view up through the trees; the heading sits in the patch of sky */}
-      <CanopyBackdrop hostRef={root} seed={23} />
-      <div className="lp-who-in mx-auto max-w-6xl px-4 py-28 sm:py-32">
-        <div className="mx-auto max-w-3xl text-center">
-          <p data-rise className="text-[12px] font-bold uppercase tracking-[0.2em] text-muted">Who it’s for</p>
-          <h2 id="who-heading" data-rise className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-[-0.03em] text-ink sm:text-6xl">
-            Made for how pharmacies actually work
-          </h2>
-        </div>
+      {/* the view up through the trees with the heading in the patch of sky; scrolling rises through it into mist */}
+      <CanopyStage eyebrow="Who it’s for" lines={['Made for how pharmacies', 'actually work']} headingId="who-heading" seed={23} />
+      <div className="lp-who-in mx-auto max-w-6xl px-4 pb-20 pt-6 sm:pb-32">
 
-        <div data-rise role="tablist" aria-label="Who Usha Pharmacy is for" onKeyDown={onKeyDown} className="mx-auto mt-10 flex max-w-2xl flex-wrap justify-center gap-2">
+        <div data-rise role="tablist" aria-label="Who Usha Pharmacy is for" onKeyDown={onKeyDown} className="mx-auto flex max-w-2xl flex-wrap justify-center gap-2">
           {TABS.map((t, i) => (
             <button
               key={t.id}

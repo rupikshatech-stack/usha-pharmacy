@@ -357,6 +357,7 @@ export default function CanopyBackdrop({ hostRef, seed = 23 }) {
     const layers = [...el.querySelectorAll('[data-layer]')];
     const gusts = [...el.querySelectorAll('[data-gust]')];
     const zooms = [...el.querySelectorAll('[data-zoom]')];
+    const skyBox = el.querySelector('[data-sky]');
     const idle = [...el.querySelectorAll('[data-fall="idle"]')];
     const burst = [...el.querySelectorAll('[data-fall="burst"]')];
 
@@ -414,6 +415,7 @@ export default function CanopyBackdrop({ hostRef, seed = 23 }) {
     const enter = () => {
       if (entered || still) return;
       entered = true;
+      skyBox.animate([{ transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 2600, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
       zooms.forEach((z, i) => {
         z.animate(
           [
@@ -569,26 +571,29 @@ export default function CanopyBackdrop({ hostRef, seed = 23 }) {
       seenIo.disconnect();
       host.removeEventListener('click', onClick);
       host.removeEventListener('pointermove', onMove);
-      el.querySelectorAll('[data-fall], [data-gust], [data-zoom]').forEach((n) => n.getAnimations().forEach((a) => a.cancel()));
+      el.querySelectorAll('[data-fall], [data-gust], [data-zoom], [data-sky]').forEach((n) => n.getAnimations().forEach((a) => a.cancel()));
     };
   }, [hostRef, seed]);
 
   return (
     <div ref={box} className="lp-canopy" aria-hidden="true">
-      <div className="lp-canopy-sky">
-        <canvas ref={sky} className="lp-canopy-cv" />
+      <div className="lp-canopy-sky" data-sky>
+        <canvas ref={sky} className="lp-canopy-cv" data-sky-cv />
       </div>
       {LAYERS.map((_, i) => (
         <div key={i} className="lp-canopy-layer" data-layer={i}>
           <div className="lp-canopy-fill" data-gust={i}>
-            <div className="lp-canopy-fill" data-zoom={i}>
-              <div className={`lp-canopy-fill lp-canopy-sway lp-canopy-sway-${i}`}>
-                <canvas
-                  ref={(c) => {
-                    canvases.current[i] = c;
-                  }}
-                  className="lp-canopy-cv"
-                />
+            {/* data-climb is the scroll flight's (CanopyStage), data-zoom the arrival's: separate so they never fight */}
+            <div className="lp-canopy-fill" data-climb={i}>
+              <div className="lp-canopy-fill" data-zoom={i}>
+                <div className={`lp-canopy-fill lp-canopy-sway lp-canopy-sway-${i}`}>
+                  <canvas
+                    ref={(c) => {
+                      canvases.current[i] = c;
+                    }}
+                    className="lp-canopy-cv"
+                  />
+                </div>
               </div>
             </div>
           </div>

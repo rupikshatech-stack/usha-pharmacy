@@ -683,16 +683,35 @@ footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
 }
 
 /* ======================================================================
-   Who it's for: the canopy band (Audiences.jsx + CanopyBackdrop.jsx)
-   A view up through a ring of autumn trees, the heading in the patch of sky.
+   Who it's for: the canopy stage (Audiences.jsx + CanopyStage.jsx + CanopyBackdrop.jsx)
+   A view up through a ring of autumn trees with the heading in the patch of sky. The wrapper is 2.3 screens
+   tall around a sticky stage; scrolling it rises through the leaves into a mist of the page's porcelain.
    ====================================================================== */
-.lp-who { position: relative; isolation: isolate; overflow: hidden; min-height: max(100svh, 760px); display: flex; align-items: center; }
+.lp-who { position: relative; }
 .lp-who > .lp-who-in { position: relative; z-index: 2; width: 100%; }
-/* blend the band into the porcelain above and below */
-.lp-who::before, .lp-who::after { content: ''; position: absolute; left: 0; right: 0; z-index: 1; height: clamp(48px, 9vh, 110px); pointer-events: none; }
-.lp-who::before { top: 0; background: linear-gradient(180deg, var(--app), transparent); }
-.lp-who::after { bottom: 0; background: linear-gradient(0deg, var(--app), transparent); }
-/* surfaces that cross the leaves stay readable: near-solid porcelain, no backdrop blur (it stalls over WebGL) */
+.lp-cstage-wrap { position: relative; height: calc(max(100svh, 560px) * 2.3); }
+.lp-cstage-wrap.is-still { height: auto; }
+.lp-cstage { position: sticky; top: 0; height: 100svh; min-height: 560px; overflow: hidden; isolation: isolate; display: grid; place-items: center; }
+.lp-cstage-wrap.is-still .lp-cstage { position: relative; }
+/* blend the stage into the porcelain above */
+.lp-cstage::before { content: ''; position: absolute; left: 0; right: 0; top: 0; z-index: 1; height: clamp(48px, 9vh, 110px); background: linear-gradient(180deg, var(--app), transparent); pointer-events: none; }
+.lp-cstage-copy { position: relative; z-index: 2; max-width: 48rem; padding: 0 1rem; text-align: center; will-change: transform; }
+.lp-cstage-copy > p { color: var(--ink); opacity: 0.78; }
+/* where the hole is narrow (phones) the heading can cross leaves: a soft sky-coloured halo keeps it legible */
+.lp-cstage-copy > * { text-shadow: 0 0 18px rgba(226, 237, 247, 0.95), 0 0 6px rgba(226, 237, 247, 0.8); }
+/* each line rises out of its own mask */
+.lp-cstage-line { display: block; overflow: hidden; padding: 0.04em 0.08em 0.12em; margin: -0.04em 0 -0.12em; }
+.lp-cstage-line > span { display: inline-block; transform-origin: 0 100%; }
+/* the mist that rolls up at the end of the rise: transparent, then solid porcelain, so the page carries on from it */
+.lp-cstage-veil {
+  position: absolute; left: 0; right: 0; top: 0; height: 200%; z-index: 3; pointer-events: none; transform: translateY(50%);
+  background:
+    radial-gradient(60% 18% at 22% 50%, var(--app) 30%, transparent 70%),
+    radial-gradient(50% 16% at 78% 52%, var(--app) 30%, transparent 70%),
+    linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--app) 70%, transparent) 38%, var(--app) 50%, var(--app) 100%);
+}
+.lp-cstage-wrap.is-still .lp-cstage-veil { display: none; }
+/* surfaces below the stage */
 .lp-who-tab { background: color-mix(in srgb, var(--app) 88%, transparent); border: 1px solid rgba(17, 34, 29, 0.1); box-shadow: 0 6px 18px -10px rgba(17, 34, 29, 0.35); }
 .lp-who-panel { background: color-mix(in srgb, var(--app) 93%, transparent); border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 30px 60px -30px rgba(40, 18, 6, 0.55); }
 
@@ -717,6 +736,3 @@ footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
 @media (prefers-reduced-motion: reduce) {
   .lp-canopy-sway, .lp-canopy-fall svg { animation: none; }
 }
-/* where the hole is narrow (phones) the heading can cross leaves: a soft sky-coloured halo keeps it legible */
-.lp-who-in > div:first-child > * { text-shadow: 0 0 18px rgba(226, 237, 247, 0.95), 0 0 6px rgba(226, 237, 247, 0.8); }
-.lp-who-in > div:first-child > p { color: var(--ink); opacity: 0.78; }
