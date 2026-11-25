@@ -18,13 +18,14 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 const PAD = 14; // canvas bleed around the pill, for shadows and ripples
 
 const NIMBUS_CSS = `
-.nimbus-nav{--n-tint:rgba(255,255,255,.14);--n-fg:#0B132B;--n-fg-soft:rgba(11,19,43,.6);--n-rim:rgba(255,255,255,.7);
+.nimbus-nav{--n-tint:rgba(17,34,29,.035);--n-fg:#11221d;--n-fg-soft:rgba(17,34,29,.62);--n-rim:rgba(255,255,255,.9);--n-ring:rgba(23,89,67,.85);
   position:relative;display:inline-flex;align-items:center;gap:2px;padding:6px;border-radius:999px;isolation:isolate;
   font-family:inherit;-webkit-font-smoothing:antialiased;user-select:none;-webkit-tap-highlight-color:transparent}
-.nimbus-nav[data-tone="dark"]{--n-tint:rgba(255,255,255,.07);--n-fg:#F1F7FF;--n-fg-soft:rgba(241,247,255,.72);--n-rim:rgba(255,255,255,.3)}
+.nimbus-nav[data-tone="dark"]{--n-tint:rgba(255,255,255,.07);--n-fg:#F1F7FF;--n-fg-soft:rgba(241,247,255,.72);--n-rim:rgba(255,255,255,.3);--n-ring:rgba(255,255,255,.85)}
 .nimbus-glass{position:absolute;inset:0;border-radius:inherit;z-index:-2;overflow:hidden;background:var(--n-tint);
   -webkit-backdrop-filter:blur(10px) saturate(1.2) brightness(1.08);backdrop-filter:blur(10px) saturate(1.2) brightness(1.08);
   box-shadow:inset 0 1px 1px var(--n-rim),inset 0 0 0 1px rgba(255,255,255,.2),0 12px 32px -14px rgba(0,40,90,.5),0 2px 6px rgba(0,40,90,.1)}
+.nimbus-nav[data-tone="light"] .nimbus-glass{box-shadow:inset 0 1px 1px var(--n-rim),inset 0 0 0 1px rgba(17,34,29,.12),0 10px 26px -16px rgba(17,34,29,.38)}
 .nimbus-nav[data-refract="on"] .nimbus-glass{-webkit-backdrop-filter:url(#nimbus-refract) blur(2px) saturate(1.2) brightness(1.08);backdrop-filter:url(#nimbus-refract) blur(2px) saturate(1.2) brightness(1.08)}
 .nimbus-water{position:absolute;left:${-PAD}px;top:${-PAD}px;z-index:-1;pointer-events:none}
 .nimbus-nav[data-gl="off"] .nimbus-water{display:none}
@@ -35,7 +36,7 @@ const NIMBUS_CSS = `
 .nimbus-item{position:relative;z-index:1;display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px;border:0;border-radius:999px;background:none;color:var(--n-fg-soft);
   font-family:inherit;font-weight:600;font-size:14px;line-height:1;letter-spacing:-.01em;text-decoration:none;cursor:pointer;transition:color .25s}
 .nimbus-item:hover,.nimbus-item[aria-current="page"],.nimbus-item[aria-current="location"]{color:var(--n-fg)}
-.nimbus-item:focus-visible{outline:2px solid rgba(255,255,255,.85);outline-offset:2px}
+.nimbus-item:focus-visible{outline:2px solid var(--n-ring);outline-offset:2px}
 .nv-ico{position:relative;display:inline-flex;flex:none}
 .nv-ico svg{transition:transform .45s cubic-bezier(.3,1.6,.5,1)}
 .nimbus-item[aria-current] .nv-ico svg{transform:translateY(-1px) scale(1.08)}
