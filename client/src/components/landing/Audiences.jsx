@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { cx } from '../common/ui';
 import useRise from './useRise';
+import CanopyBackdrop from './CanopyBackdrop';
 
 const TABS = [
   {
@@ -44,8 +45,10 @@ export default function Audiences() {
 
   const tab = TABS[active];
   return (
-    <section id="who" ref={root} aria-labelledby="who-heading" className="scroll-mt-20">
-      <div className="mx-auto max-w-6xl px-4 pb-20 sm:pb-32">
+    <section id="who" ref={root} aria-labelledby="who-heading" className="lp-who scroll-mt-20">
+      {/* the view up through the trees; the heading sits in the patch of sky */}
+      <CanopyBackdrop hostRef={root} seed={23} />
+      <div className="lp-who-in mx-auto max-w-6xl px-4 py-28 sm:py-32">
         <div className="mx-auto max-w-3xl text-center">
           <p data-rise className="text-[12px] font-bold uppercase tracking-[0.2em] text-muted">Who it’s for</p>
           <h2 id="who-heading" data-rise className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-[-0.03em] text-ink sm:text-6xl">
@@ -66,7 +69,7 @@ export default function Audiences() {
               onClick={() => setActive(i)}
               className={cx(
                 'lp-btn h-11 rounded-full px-5 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
-                i === active ? 'lp-cta-glow bg-primary text-on-primary' : 'border border-ink/12 bg-ink/5 text-muted hover:text-ink',
+                i === active ? 'lp-cta-glow bg-primary text-on-primary' : 'lp-who-tab text-muted hover:text-ink',
               )}
             >
               {t.label}
@@ -74,7 +77,7 @@ export default function Audiences() {
           ))}
         </div>
 
-        <div id="aud-panel" role="tabpanel" aria-labelledby={`aud-tab-${tab.id}`} data-rise className="lp-lift mx-auto mt-8 max-w-3xl rounded-2xl border border-ink/10 bg-ink/[0.04] p-7 sm:p-10">
+        <div id="aud-panel" role="tabpanel" aria-labelledby={`aud-tab-${tab.id}`} data-rise className="lp-lift lp-who-panel mx-auto mt-8 max-w-3xl rounded-2xl p-7 sm:p-10">
           <h3 className="text-2xl font-extrabold tracking-tight text-ink">{tab.title}</h3>
           <p className="mt-2 text-[15px] leading-relaxed text-muted">{tab.body}</p>
           <ul className="mt-5 grid gap-2.5 sm:grid-cols-3">
