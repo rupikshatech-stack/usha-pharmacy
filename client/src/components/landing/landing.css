@@ -205,6 +205,22 @@
   background: radial-gradient(ellipse 62% 46% at 50% 46%, rgba(247, 246, 242, 0.93), rgba(247, 246, 242, 0.62) 58%, rgba(247, 246, 242, 0) 82%);
 }
 
+/* The hero sits on the dark pattern (see BackdropLayers), so the page's ink and muted flip to light inside it. Everything
+   in the hero reads them through the theme, so this one scope turns the headline, copy and links without touching each. */
+.lp-hero--dark {
+  --ink: #f7f6f2;
+  --muted: #bcd0c8;
+}
+.lp-hero--dark .lp-hero-veil {
+  /* a dark pool behind the words, in place of the porcelain one, so they stay legible over the capsule */
+  background: radial-gradient(ellipse 62% 46% at 50% 46%, rgba(6, 17, 13, 0.78), rgba(6, 17, 13, 0.46) 58%, rgba(6, 17, 13, 0) 82%);
+}
+.lp-hero--dark .lp-gradient-text {
+  background: linear-gradient(100deg, #8fe8c6 0%, #54cfa0 50%, #2fae82 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
 .lp-gradient-text {
   background: linear-gradient(100deg, #2a8566 0%, #175943 45%, #0f3d2e 100%);
   -webkit-background-clip: text;

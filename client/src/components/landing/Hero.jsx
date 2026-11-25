@@ -1,7 +1,6 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import { ctaPrimary } from './LandingNav';
 import useRise from './useRise';
 
 export default function Hero() {
@@ -9,7 +8,7 @@ export default function Hero() {
   useRise(root);
 
   return (
-    <section ref={root} className="relative overflow-hidden">
+    <section ref={root} className="lp-hero--dark relative overflow-hidden">
       <div className="absolute inset-0" aria-hidden="true">
         {/* Lifts the headline off the 3D capsule passing behind it. */}
         <div className="lp-hero-veil" />
@@ -26,7 +25,7 @@ export default function Hero() {
           Usha Pharmacy brings the counter, the stockroom and the books together, with batch-wise stock, expiry tracking, GST reports and control across branches.
         </p>
         <div data-rise className="mt-11 flex flex-col items-center gap-5 sm:flex-row sm:justify-center">
-          <a href="#motion" className={`${ctaPrimary} !rounded-full`}>Try the live demo <ArrowRight size={16} aria-hidden="true" /></a>
+          <a href="#motion" className="lp-glass-btn lp-glass-btn--light !h-12 !px-6 !text-sm">Try the live demo <ArrowRight size={16} aria-hidden="true" /></a>
           <a href="#modules" className="text-sm font-semibold text-muted underline-offset-4 outline-none transition-colors hover:text-ink hover:underline focus-visible:text-ink focus-visible:underline">
             See all modules
           </a>
