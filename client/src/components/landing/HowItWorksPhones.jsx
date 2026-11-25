@@ -22,8 +22,9 @@ const STOP = Symbol('demo stopped');
 
 /**
  * Runs `script` forever from mount until unmount. The first run waits for fonts, then a beat, so the layout the
- * cursor measures is the layout that stays. Unmounting cancels it: every pending sleep resolves and the next
- * checkpoint throws STOP, so nothing is left running.
+ * cursor measures is the layout that stays. A pass that throws is logged and the next pass starts after a pause,
+ * so one failure can never leave a phone frozen mid-flow. Unmounting cancels it: every pending sleep resolves and
+ * the next checkpoint throws STOP, so nothing is left running.
  */
 function useDemoLoop(script) {
   const live = useRef(script);
@@ -46,9 +47,21 @@ function useDemoLoop(script) {
     };
     (async () => {
       try {
-        await (document.fonts?.ready ?? Promise.resolve());
+        // wait for fonts so the cursor measures the final layout, but never longer than 1.5s: a fonts promise that
+        // never settles must not leave the phone parked on its first frame
+        await Promise.race([document.fonts?.ready ?? Promise.resolve(), new Promise((r) => setTimeout(r, 1500))]);
         await wait(700);
-        for (;;) await live.current({ wait });
+        for (;;) {
+          try {
+            await live.current({ wait });
+          } catch (e) {
+            if (e === STOP) throw e;
+            // a single bad pass must never freeze the phone: say so, pause, and start again from the top
+            // (every script opens by resetting its own state)
+            console.error('How it works demo: a pass failed, restarting it', e);
+            await wait(1000);
+          }
+        }
       } catch (e) {
         if (e !== STOP) console.error(e);
       }
@@ -381,14 +394,16 @@ function BillingPhone({ screenshot }) {
       await moveTo(wait, doneEl.current);
       patch({ press: 'done' });
       await tap(wait);
-      patch({ press: '', done: true });
+      patch({ press: '', done: true }); // the success flash
       await wait(350);
       patch({ toast: true });
-      await wait(1300);
-      patch({ toast: false });
-      await wait(900);
+      await wait(850);
+      patch({ done: false }); // back to its own label after about 1.2s
+      await wait(450);
+      patch({ toast: false }); // the toast has held about 1.3s
+      await wait(700);
       hide();
-      await wait(500);
+      await wait(400);
       patch(BILL_START);
       await wait(1000);
     },

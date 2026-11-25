@@ -559,7 +559,7 @@ footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
      10px (so a tall tablet does not get a giant one). Everything in the section is sized in it. */
   --h: 100svh;
   --u: min(calc(var(--h) / 100), 2.4vw, 10px);
-  --card: calc(var(--u) * 40);
+  --how-card: calc(var(--u) * 40); /* not --card: that name is the site's card colour token */
   --gap: calc(var(--u) * 10);
   --phone-h: calc(var(--u) * 46);
   /* The app's own brand forest (index.css --primary / --side). The landing page tints its accent a shade
@@ -572,7 +572,7 @@ footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
   background: var(--how-tint);
 }
 /* stage height plus exactly the track's overflow (two card spacings), so the pin lasts as long as the sideways run */
-.lp-how--film { height: calc(var(--h) + 2 * (var(--card) + var(--gap))); }
+.lp-how--film { height: calc(var(--h) + 2 * (var(--how-card) + var(--gap))); }
 .lp-how-stage {
   position: sticky; top: 0; height: var(--h); overflow: hidden;
   display: flex; flex-direction: column;
@@ -582,11 +582,11 @@ footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
 .lp-how-viewport { flex: 1; min-height: 0; display: flex; align-items: center; }
 .lp-how-track {
   position: relative; display: flex; align-items: flex-start; gap: var(--gap); width: max-content;
-  padding-inline: calc((100% - var(--card)) / 2); /* the first card starts centred, the last one ends centred */
+  padding-inline: calc((100% - var(--how-card)) / 2); /* the first card starts centred, the last one ends centred */
   will-change: transform;
 }
-.lp-how-card { flex: none; width: var(--card); display: flex; flex-direction: column; align-items: center; text-align: center; will-change: transform; }
-.lp-how--still .lp-how-card { width: min(var(--card), 100%); }
+.lp-how-card { flex: none; width: var(--how-card); display: flex; flex-direction: column; align-items: center; text-align: center; will-change: transform; }
+.lp-how--still .lp-how-card { width: min(var(--how-card), 100%); }
 .lp-how-slot { width: calc(var(--phone-h) * 248 / 392); height: var(--phone-h); }
 .lp-how-phone { width: 248px; transform: scale(var(--k, 1)); transform-origin: top left; }
 .lp-how-caption { margin-top: calc(var(--u) * 2.6); }
@@ -617,9 +617,12 @@ footer.lp-forest-zone { background: rgba(18, 43, 36, 0.92); }
 }
 .lp-ph-btn.is-press { transform: scale(0.94); }
 .lp-ph-cursor {
-  position: absolute; z-index: 30; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 999px; pointer-events: none;
-  background: color-mix(in srgb, var(--lp-accent) 28%, transparent); border: 2px solid var(--lp-accent);
-  box-shadow: 0 3px 10px color-mix(in srgb, var(--ink) 30%, transparent);
+  /* A solid forest dot inside a white ring with a soft glow, so it reads on the white screen and on the forest
+     buttons alike (a forest-only dot vanished into the Sign in and Add stock buttons at the moment it pressed them). */
+  position: absolute; z-index: 30; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 999px; pointer-events: none;
+  background: var(--lp-accent); border: 2px solid var(--card);
+  box-shadow: 0 0 0 4px rgba(23, 75, 58, 0.22), 0 4px 12px rgba(17, 34, 29, 0.35); /* for browsers without color-mix */
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lp-accent) 22%, transparent), 0 4px 12px color-mix(in srgb, var(--ink) 35%, transparent);
   opacity: 0; transition: opacity 0.25s ease; /* while hidden it jumps, so it never glides in from a stale spot */
 }
 .lp-ph-cursor[data-on='true'] { opacity: 1; transition: left 0.5s ease, top 0.5s ease, opacity 0.25s ease, transform 0.14s ease; }
