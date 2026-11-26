@@ -3,7 +3,7 @@
 // roll drops, and that a toggle in the settings really changes the page.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SAMPLE_INVOICE, renderInvoiceHtml } from './invoiceTemplate.js';
+import { SAMPLE_INVOICE, renderInvoiceHtml, whenImagesReady } from './invoiceTemplate.js';
 
 const org = {
   name: 'SWS Wholesale',
@@ -134,4 +134,41 @@ test('prints the HSN a saved invoice line carries (hsnCode), and a dash for an o
   assert.equal(hsnOf(two, 'Paracetamol'), '21069099');
   assert.equal(hsnOf(two, 'Old'), '—', "an invoice from before HSN was kept prints a dash, not another medicine's code");
   assert.equal(hsnOf([line({ hsn: '30049099' })], 'Paracetamol'), '30049099', "the sample data's older field name still works");
+});
+
+/** A stand-in for an <img>: not yet loaded, until the test says it has. */
+const pendingImage = () => {
+  const img = new EventTarget();
+  img.complete = false;
+  return img;
+};
+const state = async (promise) => {
+  let done = false;
+  promise.then(() => (done = true));
+  await new Promise((r) => setTimeout(r, 0));
+  return () => done;
+};
+
+test('printing waits for the logo: not ready until the image has loaded', async () => {
+  const logo = pendingImage();
+  const ready = whenImagesReady({ images: [logo] }, 60_000);
+  assert.equal((await state(ready))(), false, 'still loading');
+  logo.dispatchEvent(new Event('load'));
+  await ready;
+});
+
+test('a logo that fails to load does not stop the bill from printing', async () => {
+  const logo = pendingImage();
+  const ready = whenImagesReady({ images: [logo] }, 60_000);
+  logo.dispatchEvent(new Event('error'));
+  await ready;
+});
+
+test('a logo that never arrives is given up on after the timeout', async () => {
+  await whenImagesReady({ images: [pendingImage()] }, 20);
+});
+
+test('with no images, or images already loaded, there is nothing to wait for', async () => {
+  await whenImagesReady({ images: [] }, 60_000);
+  await whenImagesReady({ images: [{ complete: true }] }, 60_000);
 });

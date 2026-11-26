@@ -301,6 +301,31 @@ ${show.signature ? `<div class="sign">For <strong>${esc(org.legalName || org.nam
 </body></html>`;
 }
 
+/** How long printing waits for an image that is still on its way before printing without it. */
+export const IMAGE_WAIT_MS = 10000;
+
+/**
+ * Resolves once every image in `doc` has finished loading or failed, and in any case after `timeout` ms, so a logo
+ * that never arrives cannot stop a bill from printing.
+ */
+export function whenImagesReady(doc, timeout = IMAGE_WAIT_MS) {
+  const pending = Array.from(doc?.images || [])
+    .filter((img) => !img.complete)
+    .map(
+      (img) =>
+        new Promise((resolve) => {
+          img.addEventListener('load', resolve, { once: true });
+          img.addEventListener('error', resolve, { once: true });
+        }),
+    );
+  if (!pending.length) return Promise.resolve();
+  let timer;
+  const gaveUp = new Promise((resolve) => {
+    timer = setTimeout(resolve, timeout);
+  });
+  return Promise.race([Promise.all(pending), gaveUp]).then(() => clearTimeout(timer));
+}
+
 /** Opens the print dialog for a rendered invoice. Returns false when the browser blocked the window. */
 export function printRenderedInvoice(html) {
   const w = window.open('', '_blank', 'width=460,height=720');
@@ -308,7 +333,9 @@ export function printRenderedInvoice(html) {
   w.document.write(html);
   w.document.close();
   w.focus();
-  // Let the layout settle before the dialog opens, or the first page can print half-measured.
-  setTimeout(() => w.print(), 350);
+  // The store logo comes from the server, and a print dialog takes the page as it is at that instant: opened too
+  // early, the invoice prints with the logo missing or only partly drawn. So wait for the images, then let the
+  // layout settle before the dialog opens, or the first page can print half-measured.
+  whenImagesReady(w.document).then(() => setTimeout(() => w.print(), 350));
   return true;
 }
